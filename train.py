@@ -31,7 +31,7 @@ def train(
 ):
     now = datetime.now().strftime('%m-%d-%H-%M-%S')
     run_name = run_name + "_" + now
-    save_path = os.path.join(save_path, run_name)
+    # save_path = os.path.join(save_path, run_name)
     ensure_dir(save_path)
 
     ## get data and model
@@ -48,16 +48,16 @@ def train(
         ),
         pl.callbacks.LearningRateMonitor(),
     ]
-    loggers = [
-        pl.loggers.WandbLogger(
-            name=run_name,
-            save_dir=save_path,
-            project=project_name,
-            log_model=True,
-            entity="chrockey",
-            config=hparams,
-        )
-    ]
+    # loggers = [
+    #     pl.loggers.WandbLogger(
+    #         name=run_name,
+    #         save_dir=save_path,
+    #         project=project_name,
+    #         log_model=True,
+    #         entity="chrockey",
+    #         config=hparams,
+    #     )
+    # ]
     additional_kwargs = dict()
     if gpus > 1:
         raise NotImplementedError("Currently, multi-gpu training is not supported.")
@@ -68,7 +68,7 @@ def train(
         max_steps=max_step,
         gpus=gpus,
         callbacks=callbacks,
-        logger=loggers,
+        # logger=loggers,
         log_every_n_steps=log_every_n_steps,
         check_val_every_n_epoch=check_val_every_n_epoch,
         **additional_kwargs
@@ -88,6 +88,7 @@ if __name__ == "__main__":
     parser.add_argument("--run_name", type=str, default="default")
     parser.add_argument("--seed", type=int, default=1235)
     parser.add_argument("-v", "--voxel_size", type=float, default=None)
+    parser.add_argument("-v", "--gpus", type=int, default=1)
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
@@ -95,6 +96,12 @@ if __name__ == "__main__":
     gin.parse_config_file(args.config)
     if args.voxel_size is not None:
         gin.bind_parameter("DimensionlessCoordinates.voxel_size", args.voxel_size)
-    setup_logger(args.run_name, args.debug)
+    if args.gpus > 1:
+        gin.bind_parameter("train.gpus", args.gpus)
+    save_path = os.path.join(
+        args.save_path,
+        gin.query_parameter("train.model_name") + '_' + gin.query_parameter("DimensionlessCoordinates.voxel_size")[2:]
+    )
+    # setup_logger(args.run_name, args.debug)
 
-    train(save_path=args.save_path, run_name=args.run_name)
+    train(save_path=save_path, run_name=args.run_name)
