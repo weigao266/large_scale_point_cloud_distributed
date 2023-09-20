@@ -8,8 +8,8 @@ out_channels = 20
 ScanNetRGBDataModule.data_root = "../../data/ScanNet" # you need to modify this according to your data.
 ScanNetRGBDataModule.train_batch_size = 8
 ScanNetRGBDataModule.val_batch_size = 2
-ScanNetRGBDataModule.train_num_workers = 64
-ScanNetRGBDataModule.val_num_workers = 32
+ScanNetRGBDataModule.train_num_workers = 96
+ScanNetRGBDataModule.val_num_workers = 64
 ScanNetRGBDataModule.collation_type = "collate_minkowski"
 ScanNetRGBDataModule.train_transforms = [
     "DimensionlessCoordinates",

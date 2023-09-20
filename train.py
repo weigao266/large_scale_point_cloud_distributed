@@ -98,14 +98,14 @@ def train(
                 # model.block7,
                 # model.block8
             ],
-            # activation_checkpointing=Res16UNetBase.conv0p1s1,  # or pass a list with multiple types
+            # or pass a list with multiple types
         )
         
         # additional_kwargs["replace_sampler_ddp"] = True
-        additional_kwargs["sync_batchnorm"] = False
+        additional_kwargs["sync_batchnorm"] = False ## little influence to memory usage
         # additional_kwargs["strategy"] = "ddp_find_unused_parameters_false"
-        # additional_kwargs["strategy"] = "ddp"
-        additional_kwargs["strategy"] = fsdp
+        additional_kwargs["strategy"] = "fsdp"
+        # additional_kwargs["strategy"] = fsdp
         additional_kwargs["accelerator"]="gpu"
         additional_kwargs["precision"]=32
 
