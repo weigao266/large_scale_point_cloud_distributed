@@ -2,7 +2,7 @@
 include "./config/scannet/train_res16unet34c.gin"
 
 # Model
-train.model_name = "FastPointTransformer"
+train.model_name = "FastPointTransformerSmall"
 FastPointTransformer.in_channels = %in_channels
 FastPointTransformer.out_channels = %out_channels
 

@@ -37,6 +37,9 @@ def train(
     ## get data and model
     data_module = get_data_module(data_module_name)()
     model = get_model(model_name)()
+    if gpus > 1:
+        model = ME.MinkowskiSyncBatchNorm.convert_sync_batchnorm(model)
+        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
     pl_module = get_lightning_module(lightning_module_name)(model=model, max_steps=max_step)
     gin.finalize()
 
@@ -60,7 +63,12 @@ def train(
     # ]
     additional_kwargs = dict()
     if gpus > 1:
-        raise NotImplementedError("Currently, multi-gpu training is not supported.")
+        additional_kwargs["replace_sampler_ddp"] = True
+        additional_kwargs["sync_batchnorm"] = False
+        # additional_kwargs["strategy"] = "ddp_find_unused_parameters_false"
+        additional_kwargs["strategy"] = "ddp"
+        additional_kwargs["accelerator"]="gpu"
+        additional_kwargs["precision"]=16
 
     trainer = pl.Trainer(
         default_root_dir=save_path,
@@ -98,6 +106,7 @@ if __name__ == "__main__":
         gin.bind_parameter("DimensionlessCoordinates.voxel_size", args.voxel_size)
     if args.gpus > 1:
         gin.bind_parameter("train.gpus", args.gpus)
+        gin.bind_parameter("LitSegmentationModuleBase.lr", gin.query_parameter("LitSegmentationModuleBase.lr")*args.gpus)
     save_path = os.path.join(
         args.save_path,
         gin.query_parameter("train.model_name") + '_' + gin.query_parameter("DimensionlessCoordinates.voxel_size")[2:]
