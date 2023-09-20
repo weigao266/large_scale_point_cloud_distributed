@@ -12,6 +12,9 @@ from src.utils.file import ensure_dir
 from src.utils.logger import setup_logger
 from src.utils.misc import logged_hparams
 
+import MinkowskiEngine as ME
+import torch
+
 
 @gin.configurable
 def train(
@@ -68,7 +71,7 @@ def train(
         # additional_kwargs["strategy"] = "ddp_find_unused_parameters_false"
         additional_kwargs["strategy"] = "ddp"
         additional_kwargs["accelerator"]="gpu"
-        additional_kwargs["precision"]=16
+        additional_kwargs["precision"]=32
 
     trainer = pl.Trainer(
         default_root_dir=save_path,
@@ -96,7 +99,7 @@ if __name__ == "__main__":
     parser.add_argument("--run_name", type=str, default="default")
     parser.add_argument("--seed", type=int, default=1235)
     parser.add_argument("-v", "--voxel_size", type=float, default=None)
-    parser.add_argument("-v", "--gpus", type=int, default=1)
+    parser.add_argument("-g", "--gpus", type=int, default=1)
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
@@ -109,7 +112,7 @@ if __name__ == "__main__":
         gin.bind_parameter("LitSegmentationModuleBase.lr", gin.query_parameter("LitSegmentationModuleBase.lr")*args.gpus)
     save_path = os.path.join(
         args.save_path,
-        gin.query_parameter("train.model_name") + '_' + gin.query_parameter("DimensionlessCoordinates.voxel_size")[2:]
+        gin.query_parameter("train.model_name") + '_' + str(gin.query_parameter("DimensionlessCoordinates.voxel_size"))[2:]
     )
     # setup_logger(args.run_name, args.debug)
 
