@@ -1,7 +1,8 @@
 import gin
 import numpy as np
 import torch
-import pytorch_lightning as pl
+# import pytorch_lightning as pl
+import lightning.pytorch as pl
 import pl_bolts
 import torchmetrics
 import MinkowskiEngine as ME
@@ -79,7 +80,8 @@ class LitSegmentationModuleBase(pl.LightningModule):
         torch.cuda.empty_cache()
         return loss
 
-    def validation_epoch_end(self, outputs):
+    # def validation_epoch_end(self, outputs):
+    def on_validation_epoch_end(self):
         confusion_matrix = self.metric.compute().cpu().numpy()
         self.metric.reset()
         ious = per_class_iou(confusion_matrix) * 100

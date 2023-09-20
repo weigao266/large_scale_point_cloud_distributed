@@ -14,6 +14,7 @@ class Res16UNetBase(ResNetBase):
 
     def __init__(self, in_channels, out_channels, D=3):
         super(Res16UNetBase, self).__init__(in_channels, out_channels, D)
+        # self.network_initialization(in_channels, out_channels, D)
 
     def network_initialization(self, in_channels, out_channels, D):
         self.inplanes = self.INIT_DIM

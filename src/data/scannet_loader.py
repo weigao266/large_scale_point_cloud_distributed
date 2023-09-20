@@ -6,7 +6,8 @@ import numpy as np
 from plyfile import PlyData
 from pandas import DataFrame
 import torch
-import pytorch_lightning as pl
+# import pytorch_lightning as pl
+import lightning.pytorch as pl
 
 from src.data.collate import CollationFunctionFactory
 import src.data.transforms as T

@@ -237,7 +237,7 @@ class FastPointTransformer(nn.Module):
         return out
 
     def forward(self, x):
-        print(x.size())
+        # print(x.size())
         out, norm_points_p1, points_p1, count_p1, pos_embs = self.voxelize_with_centroids(x)
         out = self.relu(self.bn0(self.attn0p1(out, norm_points_p1)))
         out_p1 = self.relu(self.bn1(self.attn1p1(out, norm_points_p1)))
@@ -266,25 +266,25 @@ class FastPointTransformer(nn.Module):
             out = module(out, norm_points_p16)
 
         out = self.pooltr(out)
-        out = torch.cat(out, out_p8)
+        out = ME.cat(out, out_p8)
         out = self.relu(self.bn5(self.attn5p8(out, norm_points_p8)))
         for module in self.block5:
             out = module(out, norm_points_p8)
 
         out = self.pooltr(out)
-        out = torch.cat(out, out_p4)
+        out = ME.cat(out, out_p4)
         out = self.relu(self.bn6(self.attn6p4(out, norm_points_p4)))
         for module in self.block6:
             out = module(out, norm_points_p4)
 
         out = self.pooltr(out)
-        out = torch.cat(out, out_p2)
+        out = ME.cat(out, out_p2)
         out = self.relu(self.bn7(self.attn7p2(out, norm_points_p2)))
         for module in self.block7:
             out = module(out, norm_points_p2)
 
         out = self.pooltr(out)
-        out = torch.cat(out, out_p1)
+        out = ME.cat(out, out_p1)
         out = self.relu(self.bn8(self.attn8p1(out, norm_points_p1)))
         for module in self.block8:
             out = module(out, norm_points_p1)

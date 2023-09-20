@@ -3,7 +3,8 @@ import os
 from datetime import datetime
 
 import gin
-import pytorch_lightning as pl
+# import pytorch_lightning as pl
+import lightning.pytorch as pl
 
 from src.models import get_model
 from src.data import get_data_module
@@ -12,8 +13,12 @@ from src.utils.file import ensure_dir
 from src.utils.logger import setup_logger
 from src.utils.misc import logged_hparams
 
+from src.models.resunet import Res16UNetBase
+
 import MinkowskiEngine as ME
 import torch
+
+from lightning.pytorch.strategies import FSDPStrategy
 
 
 @gin.configurable
@@ -66,10 +71,41 @@ def train(
     # ]
     additional_kwargs = dict()
     if gpus > 1:
-        additional_kwargs["replace_sampler_ddp"] = True
+        fsdp = FSDPStrategy(
+            activation_checkpointing=[
+                ME.MinkowskiConvolution,
+                ME.MinkowskiConvolutionTranspose,
+                ME.MinkowskiReLU,
+                ME.MinkowskiBatchNorm,
+                ME.MinkowskiDropout,
+                ME.MinkowskiSumPooling
+                # model.conv0p1s1,
+                # model.conv1p1s2,
+                # model.conv2p2s2,
+                # model.conv3p4s2,
+                # model.conv4p8s2,
+                # model.convtr4p16s2,
+                # model.convtr5p8s2,
+                # model.convtr6p4s2,
+                # model.convtr7p2s2,
+                # model.relu,
+                # model.block1,
+                # model.block2,
+                # model.block3,
+                # model.block4,
+                # model.block5,
+                # model.block6,
+                # model.block7,
+                # model.block8
+            ],
+            # activation_checkpointing=Res16UNetBase.conv0p1s1,  # or pass a list with multiple types
+        )
+        
+        # additional_kwargs["replace_sampler_ddp"] = True
         additional_kwargs["sync_batchnorm"] = False
         # additional_kwargs["strategy"] = "ddp_find_unused_parameters_false"
-        additional_kwargs["strategy"] = "ddp"
+        # additional_kwargs["strategy"] = "ddp"
+        additional_kwargs["strategy"] = fsdp
         additional_kwargs["accelerator"]="gpu"
         additional_kwargs["precision"]=32
 
@@ -77,7 +113,8 @@ def train(
         default_root_dir=save_path,
         max_epochs=max_epoch,
         max_steps=max_step,
-        gpus=gpus,
+        # gpus=gpus,
+        devices=gpus,
         callbacks=callbacks,
         # logger=loggers,
         log_every_n_steps=log_every_n_steps,
