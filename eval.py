@@ -105,6 +105,9 @@ def eval(
     def remove_prefix(k, prefix):
         return k[len(prefix) :] if k.startswith(prefix) else k
 
+    print(ckpt["state_dict"].keys())
+    print('==================')
+
     state_dict = {remove_prefix(k, "model."): v for k, v in ckpt["state_dict"].items()}
     model = get_model(model_name)()
     model.load_state_dict(state_dict)
