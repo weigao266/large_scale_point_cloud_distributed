@@ -2,8 +2,8 @@
 include "./config/scannet/train_default.gin"
 
 # Model
-train.lightning_module_name = "LitSegMinkowskiModuleSmall"
-train.model_name = "Res16UNet34C"
+train.lightning_module_name = "LitSegMinkowskiModule"
+train.model_name = "Res16UNet34CSmall"
 Res16UNet34C.in_channels = %in_channels
 Res16UNet34C.out_channels = %out_channels
 
