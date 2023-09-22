@@ -3,8 +3,8 @@ import os
 from datetime import datetime
 
 import gin
-# import pytorch_lightning as pl
-import lightning.pytorch as pl
+import pytorch_lightning as pl
+# import lightning.pytorch as pl
 
 from src.models import get_model
 from src.data import get_data_module
@@ -18,7 +18,52 @@ from src.models.resunet import Res16UNetBase
 import MinkowskiEngine as ME
 import torch
 
-from lightning.pytorch.strategies import FSDPStrategy
+# from lightning.pytorch.strategies import FSDPStrategy
+from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
+from torch.distributed.fsdp import FullyShardedDataParallel
+from torch.distributed.fsdp import FullStateDictConfig
+
+def _strip_prefix_from_state_dict(k, prefix):
+    return k[len(prefix) :] if k.startswith(prefix) else k
+
+
+# class CustomFSDP(FSDPStrategy):
+#     def lightning_module_state_dict(self):
+#         """Gathers the full state dict by unsharding all the parameters.
+#         To avoid OOM, the returned parameters will only be returned on rank 0 and on CPU. All other ranks get an empty
+#         dict.
+#         """
+#         assert self.model is not None
+
+#         with FullyShardedDataParallel.state_dict_type(
+#             module=self.model,
+#             state_dict_type=StateDictType.FULL_STATE_DICT,
+#             state_dict_config=FullStateDictConfig(offload_to_cpu=False,
+#                                                   # offload_to_cpu=(self.world_size > 1),
+#                                                   rank0_only=True),):
+#         # with FullyShardedDataParallel.state_dict_type(
+#         #     module=self.model,
+#         #     state_dict_type=StateDictType.FULL_STATE_DICT,
+#         #     state_dict_config=FullStateDictConfig(offload_to_cpu=(self.world_size > 1),
+#         #                                           rank0_only=False),):
+#             # state_dict = self.model.state_dict()
+#             # print('=======================')
+#             # print(state_dict.keys())
+#             # return {_strip_prefix_from_state_dict(k, "_forward_module."): v for k, v in ckpt["state_dict"].items()}
+#             return self.model.state_dict()
+        
+# # # fsdp = CustomFSDP(
+fsdp = DDPFullyShardedNativeStrategy(
+            activation_checkpointing=[
+                ME.MinkowskiConvolution,
+                ME.MinkowskiConvolutionTranspose,
+                ME.MinkowskiReLU,
+                ME.MinkowskiBatchNorm,
+                ME.MinkowskiDropout,
+                ME.MinkowskiSumPooling
+            ],
+            # or pass a list with multiple types
+        )
 
 
 @gin.configurable
@@ -71,43 +116,15 @@ def train(
     # ]
     additional_kwargs = dict()
     if gpus > 1:
-        fsdp = FSDPStrategy(
-            activation_checkpointing=[
-                ME.MinkowskiConvolution,
-                ME.MinkowskiConvolutionTranspose,
-                ME.MinkowskiReLU,
-                ME.MinkowskiBatchNorm,
-                ME.MinkowskiDropout,
-                ME.MinkowskiSumPooling
-                # model.conv0p1s1,
-                # model.conv1p1s2,
-                # model.conv2p2s2,
-                # model.conv3p4s2,
-                # model.conv4p8s2,
-                # model.convtr4p16s2,
-                # model.convtr5p8s2,
-                # model.convtr6p4s2,
-                # model.convtr7p2s2,
-                # model.relu,
-                # model.block1,
-                # model.block2,
-                # model.block3,
-                # model.block4,
-                # model.block5,
-                # model.block6,
-                # model.block7,
-                # model.block8
-            ],
-            # or pass a list with multiple types
-        )
-        
-        # additional_kwargs["replace_sampler_ddp"] = True
+        additional_kwargs["replace_sampler_ddp"] = True
         additional_kwargs["sync_batchnorm"] = False ## little influence to memory usage
-        # additional_kwargs["strategy"] = "ddp_find_unused_parameters_false"
-        additional_kwargs["strategy"] = "fsdp"
+        # additional_kwargs["find_unused_parameters"]=False
+        additional_kwargs["strategy"] = "ddp_find_unused_parameters_false"
+        # additional_kwargs["strategy"] = "ddp_sharded"
         # additional_kwargs["strategy"] = fsdp
         additional_kwargs["accelerator"]="gpu"
         additional_kwargs["precision"]=32
+        # additional_kwargs["num_nodes"]=gpus
 
     trainer = pl.Trainer(
         default_root_dir=save_path,

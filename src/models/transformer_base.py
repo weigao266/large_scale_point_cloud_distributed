@@ -3,8 +3,11 @@ import torch.nn as nn
 import MinkowskiEngine as ME
 from MinkowskiEngine.MinkowskiKernelGenerator import KernelGenerator
 
+# from lightning.pytorch import LightningModule
+
 
 class LocalSelfAttentionBase(nn.Module):
+# class LocalSelfAttentionBase(LightningModule):
     def __init__(self, kernel_size, stride, dilation, dimension):
         super(LocalSelfAttentionBase, self).__init__()
         self.kernel_size = kernel_size
@@ -55,6 +58,7 @@ class LocalSelfAttentionBase(nn.Module):
 
 
 class ResidualBlockWithPointsBase(nn.Module):
+# class ResidualBlockWithPointsBase(LightningModule):
     LAYER = None
 
     def __init__(self, in_channels, out_channels=None, kernel_size=3):

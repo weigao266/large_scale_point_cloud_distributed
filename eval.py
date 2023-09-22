@@ -11,6 +11,7 @@ from rich.progress import track
 from rich.table import Table
 
 from src.models import get_model
+from src.modules import get_lightning_module
 from src.data import get_data_module
 from src.utils.metric import per_class_iou
 import src.data.transforms as T
@@ -105,11 +106,19 @@ def eval(
     def remove_prefix(k, prefix):
         return k[len(prefix) :] if k.startswith(prefix) else k
 
-    print(ckpt["state_dict"].keys())
-    print('==================')
+    # print(ckpt["state_dict"].keys())
+    # print('==================')
 
     state_dict = {remove_prefix(k, "model."): v for k, v in ckpt["state_dict"].items()}
     model = get_model(model_name)()
+    # pl_module = get_lightning_module("LitSegMinkowskiModule")(model=model, max_steps=None)
+    # gin.parse_config("""
+    #                 LitSegmentationModuleBase.model = 'FastPointTransformer'
+    #                 LitSegmentationModuleBase.max_steps = None
+    #                 """)
+    # gin.finalize()
+    
+    # pl_module.load_from_checkpoint(checkpoint_path)
     model.load_state_dict(state_dict)
     model = model.to(device)
     model.eval()

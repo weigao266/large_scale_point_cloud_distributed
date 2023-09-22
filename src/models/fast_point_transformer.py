@@ -8,8 +8,11 @@ from src.models.transformer_base import LocalSelfAttentionBase, ResidualBlockWit
 from src.models.common import stride_centroids, downsample_points, downsample_embeddings
 import src.cuda_ops.functions.sparse_ops as ops
 
+# from lightning.pytorch import LightningModule
+
 
 class MaxPoolWithPoints(nn.Module):
+# class MaxPoolWithPoints(LightningModule):
     def __init__(self, kernel_size=2, stride=2):
         assert kernel_size == 2 and stride == 2
         super(MaxPoolWithPoints, self).__init__()

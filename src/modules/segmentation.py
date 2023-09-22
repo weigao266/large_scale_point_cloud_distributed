@@ -1,8 +1,8 @@
 import gin
 import numpy as np
 import torch
-# import pytorch_lightning as pl
-import lightning.pytorch as pl
+import pytorch_lightning as pl
+# import lightning.pytorch as pl
 import pl_bolts
 import torchmetrics
 import MinkowskiEngine as ME
