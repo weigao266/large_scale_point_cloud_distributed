@@ -4,6 +4,7 @@ from src.models.spvcnn import SPVCNN
 import src.models.resnet as resnets
 import src.models.resunet as resunets
 import src.models.fast_point_transformer as transformers
+import src.models.point_tnn as tnn
 
 MODELS = [SPVCNN]
 # MODELS = [transformers]
@@ -11,12 +12,15 @@ MODELS = [SPVCNN]
 
 
 def add_models(module):
-    MODELS.extend([getattr(module, a) for a in dir(module) if "Net" in a or "Transformer" in a])
+    MODELS.extend([getattr(module, a) for a in dir(module) if "Net" in a or "Transformer" in a or "Point" in a])
 
 
 add_models(resnets)
 add_models(resunets)
 add_models(transformers)
+add_models(tnn)
+# print('----------------------------------')
+# print(MODELS)
 
 
 def get_model(name):

@@ -90,7 +90,7 @@ class LightweightSelfAttentionLayer(LocalSelfAttentionBase):
 
         # query, key, value, and relative positional encoding
         intra_pos_enc = self.intra_pos_mlp(norm_points)
-        stensor = stensor + intra_pos_enc
+        stensor = stensor + intra_pos_enc ## g_i
         q = self.to_query(stensor).view(-1, self.num_heads, self.attn_channels).contiguous()
         v = self.to_value(stensor).view(-1, self.num_heads, self.attn_channels).contiguous()
 
@@ -242,51 +242,61 @@ class FastPointTransformer(nn.Module):
     def forward(self, x):
         # print(x.size())
         out, norm_points_p1, points_p1, count_p1, pos_embs = self.voxelize_with_centroids(x)
+        # print(out.size())
+        # print(norm_points_p1.size())
+        # print('-----------------')
+        # print(points_p1.size())
+        # print(count_p1.size())
+        # print('-----------------')
+        # print(pos_embs.size())
         out = self.relu(self.bn0(self.attn0p1(out, norm_points_p1)))
         out_p1 = self.relu(self.bn1(self.attn1p1(out, norm_points_p1)))
-
+        # print(out_p1.size())
+        # print(out_p1.get_device())
         out, points_p2, count_p2 = self.pool(out_p1, points_p1, count_p1)
         norm_points_p2 = self.normalize_centroids(points_p2, out.C, out.tensor_stride[0])
+
         for module in self.block1:
             out = module(out, norm_points_p2)
         out_p2 = self.relu(self.bn2(self.attn2p2(out, norm_points_p2)))
-
         out, points_p4, count_p4 = self.pool(out_p2, points_p2, count_p2)
         norm_points_p4 = self.normalize_centroids(points_p4, out.C, out.tensor_stride[0])
+
         for module in self.block2:
             out = module(out, norm_points_p4)
         out_p4 = self.relu(self.bn3(self.attn3p4(out, norm_points_p4)))
-
         out, points_p8, count_p8 = self.pool(out_p4, points_p4, count_p4)
         norm_points_p8 = self.normalize_centroids(points_p8, out.C, out.tensor_stride[0])
+
         for module in self.block3:
             out = module(out, norm_points_p8)
         out_p8 = self.relu(self.bn4(self.attn4p8(out, norm_points_p8)))
-
         out, points_p16 = self.pool(out_p8, points_p8, count_p8)[:2]
         norm_points_p16 = self.normalize_centroids(points_p16, out.C, out.tensor_stride[0])
+
+        ## ======================================================================================
         for module in self.block4:
             out = module(out, norm_points_p16)
-
         out = self.pooltr(out)
+
         out = ME.cat(out, out_p8)
         out = self.relu(self.bn5(self.attn5p8(out, norm_points_p8)))
         for module in self.block5:
             out = module(out, norm_points_p8)
-
         out = self.pooltr(out)
+
         out = ME.cat(out, out_p4)
         out = self.relu(self.bn6(self.attn6p4(out, norm_points_p4)))
         for module in self.block6:
             out = module(out, norm_points_p4)
-
         out = self.pooltr(out)
+
         out = ME.cat(out, out_p2)
         out = self.relu(self.bn7(self.attn7p2(out, norm_points_p2)))
         for module in self.block7:
             out = module(out, norm_points_p2)
-
         out = self.pooltr(out)
+
         out = ME.cat(out, out_p1)
         out = self.relu(self.bn8(self.attn8p1(out, norm_points_p1)))
         for module in self.block8:

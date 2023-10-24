@@ -9,6 +9,7 @@ import MinkowskiEngine as ME
 
 from src.utils.metric import per_class_iou
 
+import gc
 
 @gin.configurable
 class LitSegmentationModuleBase(pl.LightningModule):
@@ -63,14 +64,20 @@ class LitSegmentationModuleBase(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         in_data = self.prepare_input_data(batch)
+        # print(in_data.get_device())
         logits = self.model(in_data)
         loss = self.criterion(logits, batch["labels"])
         self.log("train_loss", loss.item(), batch_size=batch["batch_size"], logger=True, prog_bar=True)
+        
         torch.cuda.empty_cache()
+        # gc.collect()
+        # print((torch.cuda.mem_get_info()[1]-torch.cuda.mem_get_info()[0])/(1024**3))
         return loss
 
     def validation_step(self, batch, batch_idx):
+        # print('-----------------')
         in_data = self.prepare_input_data(batch)
+        # print(in_data.get_device())
         logits = self.model(in_data)
         loss = self.criterion(logits, batch["labels"])
         self.log("val_loss", loss.item(), batch_size=batch["batch_size"], logger=True, prog_bar=True)
@@ -110,6 +117,12 @@ class LitSegMinkowskiModule(LitSegmentationModuleBase):
             coordinates=batch["coordinates"],
             quantization_mode=self.model.QMODE
         )
+        # print('+++++++++++++++++++++++++++++++')
+        # print(batch["features"].size())
+        # print(batch["coordinates"].size())
+        # print(batch["batch_size"])
+        # print('+++++++++++++++++++++++++++++++')
+        # in_data = torch.cat([batch["features"], batch["coordinates"]], dim=-1)
         return in_data
 
         

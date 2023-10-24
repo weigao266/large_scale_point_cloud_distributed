@@ -107,7 +107,9 @@ class Res16UNetBase(ResNetBase):
         raise NotImplementedError()
 
     def forward(self, x: ME.TensorField):
+        # print(x.size())
         out, emb = self.voxelize(x)
+        # print(out.size())
         out_p1 = self.relu(self.bn0(self.conv0p1s1(out)))
 
         out = self.relu(self.bn1(self.conv1p1s2(out_p1)))

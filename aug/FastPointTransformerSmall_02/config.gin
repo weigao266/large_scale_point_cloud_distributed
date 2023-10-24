@@ -1,0 +1,108 @@
+# Macros:
+# ==============================================================================
+in_channels = 3
+out_channels = 20
+
+# Parameters for CollationFunctionFactory:
+# ==============================================================================
+# None.
+
+# Parameters for FastPointTransformer:
+# ==============================================================================
+FastPointTransformer.in_channels = %in_channels
+FastPointTransformer.out_channels = %out_channels
+
+# Parameters for FastPointTransformerSmall:
+# ==============================================================================
+# None.
+
+# Parameters for LightweightSelfAttentionBlock:
+# ==============================================================================
+LightweightSelfAttentionBlock.kernel_size = 3
+LightweightSelfAttentionBlock.out_channels = None
+
+# Parameters for LightweightSelfAttentionLayer:
+# ==============================================================================
+LightweightSelfAttentionLayer.dilation = 1
+LightweightSelfAttentionLayer.kernel_size = 3
+LightweightSelfAttentionLayer.num_heads = 8
+LightweightSelfAttentionLayer.stride = 1
+
+# Parameters for LitSegmentationModuleBase:
+# ==============================================================================
+LitSegmentationModuleBase.best_metric_type = 'maximize'
+LitSegmentationModuleBase.dist_sync_metric = False
+LitSegmentationModuleBase.ignore_label = 255
+LitSegmentationModuleBase.lr = 0.8
+LitSegmentationModuleBase.lr_eta_min = 0.0
+LitSegmentationModuleBase.momentum = 0.9
+LitSegmentationModuleBase.num_classes = %out_channels
+LitSegmentationModuleBase.warmup_steps_ratio = 0.1
+LitSegmentationModuleBase.weight_decay = 0.0001
+
+# Parameters for LitSegMinkowskiModule:
+# ==============================================================================
+# None.
+
+# Parameters for logged_hparams:
+# ==============================================================================
+logged_hparams.keys = \
+    ['train.model_name',
+     'train.data_module_name',
+     'DimensionlessCoordinates.voxel_size',
+     'ScanNetRGBDataModule.train_transforms',
+     'ScanNetRGBDataModule.eval_transforms',
+     'ScanNetRGBDataModule.train_batch_size',
+     'ScanNetRGBDataModule.val_batch_size',
+     'ScanNetRGBDataModule.train_num_workers',
+     'ScanNetRGBDataModule.val_num_workers',
+     'RandomCrop.x',
+     'RandomHorizontalFlip.upright_axis',
+     'RandomAffine.upright_axis',
+     'RandomAffine.application_ratio',
+     'ChromaticJitter.std',
+     'ChromaticJitter.application_ratio',
+     'ElasticDistortion.distortion_params',
+     'ElasticDistortion.application_ratio',
+     'LitSegmentationModuleBase.lr',
+     'LitSegmentationModuleBase.momentum',
+     'LitSegmentationModuleBase.weight_decay',
+     'LitSegmentationModuleBase.warmup_steps_ratio',
+     'train.max_step']
+
+# Parameters for ScanNetRGBDataModule:
+# ==============================================================================
+ScanNetRGBDataModule.collation_type = 'collate_minkowski'
+ScanNetRGBDataModule.data_root = '../../data/ScanNet'
+ScanNetRGBDataModule.eval_transforms = \
+    ['DimensionlessCoordinates', 'NormalizeColor']
+ScanNetRGBDataModule.train_batch_size = 1
+ScanNetRGBDataModule.train_num_workers = 96
+ScanNetRGBDataModule.train_transforms = \
+    ['DimensionlessCoordinates',
+     'RandomRotation',
+     'RandomCrop',
+     'RandomAffine',
+     'CoordinateDropout',
+     'ChromaticTranslation',
+     'ChromaticJitter',
+     'RandomHorizontalFlip',
+     'RandomTranslation',
+     'ElasticDistortion',
+     'NormalizeColor']
+ScanNetRGBDataModule.val_batch_size = 1
+ScanNetRGBDataModule.val_num_workers = 64
+
+# Parameters for train:
+# ==============================================================================
+train.best_metric = 'val_mIoU'
+train.check_val_every_n_epoch = 1
+train.data_module_name = 'ScanNetRGBDataModule'
+train.gpus = 8
+train.lightning_module_name = 'LitSegMinkowskiModule'
+train.log_every_n_steps = 10
+train.max_epoch = None
+train.max_step = 400000
+train.model_name = 'FastPointTransformerSmall'
+train.project_name = 'FastPointTransformer-release'
+train.refresh_rate_per_second = 1

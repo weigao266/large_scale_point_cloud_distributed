@@ -6,5 +6,5 @@ train.model_name = "FastPointTransformerSmaller"
 FastPointTransformer.in_channels = %in_channels
 FastPointTransformer.out_channels = %out_channels
 
-ScanNetRGBDataModule.train_batch_size = 8
-ScanNetRGBDataModule.val_batch_size = 2
+ScanNetRGBDataModule.train_batch_size = 1
+ScanNetRGBDataModule.val_batch_size = 1

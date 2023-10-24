@@ -149,6 +149,7 @@ class ScanNetRGBDataset(ScanNetDatasetBase):
         coords = torch.from_numpy(coords)
         feats = torch.from_numpy(feats)
         labels = torch.from_numpy(labels)
+
         return coords.float(), feats.float(), labels.long(), None
 
     def _load_data(self, idx):
@@ -209,6 +210,11 @@ class ScanNetRGBDataModule(pl.LightningDataModule):
             self.dset_train, batch_size=self.train_batch_size, shuffle=True, drop_last=False,
             num_workers=self.train_num_workers, collate_fn=self.collate_fn
         )
+        # return torch.utils.data.DataLoader(
+        #     self.dset_train, batch_size=self.train_batch_size, shuffle=True, drop_last=False,
+        #     num_workers=0, collate_fn=self.collate_fn
+        # )
+
 
     def val_dataloader(self):
         return torch.utils.data.DataLoader(

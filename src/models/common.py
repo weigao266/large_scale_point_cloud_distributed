@@ -13,9 +13,16 @@ def downsample_points(points, tensor_map, field_map, size):
 
 @torch.no_grad()
 def stride_centroids(points, counts, rows, cols, size):
+    # print(points.size())
+    # print(counts.size())
+    # print(rows.size())
+    # print(cols.size())
+    # print(size)
     stride_centroids = ME.MinkowskiSPMMFunction().apply(rows, cols, counts, size, points)
+    # stride_centroids = ME.spmm(rows, cols, counts, size, points)
     ones = torch.ones(size[1], dtype=points.dtype, device=points.device)
     stride_counts = ME.MinkowskiSPMMFunction().apply(rows, cols, ones, size, counts)
+    # stride_counts = ME.spmm(rows, cols, ones, size, counts)
     stride_counts.clamp_(min=1)
     return torch.true_divide(stride_centroids, stride_counts), stride_counts
 

@@ -81,6 +81,7 @@ def train(
     best_metric,
     max_epoch,
     max_step,
+    augs,
 ):
     now = datetime.now().strftime('%m-%d-%H-%M-%S')
     run_name = run_name + "_" + now
@@ -94,7 +95,7 @@ def train(
         model = ME.MinkowskiSyncBatchNorm.convert_sync_batchnorm(model)
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
     pl_module = get_lightning_module(lightning_module_name)(model=model, max_steps=max_step)
-    gin.finalize()
+    # gin.finalize()
 
     hparams = logged_hparams()
     callbacks = [
@@ -126,24 +127,56 @@ def train(
         additional_kwargs["precision"]=32
         # additional_kwargs["num_nodes"]=gpus
 
-    trainer = pl.Trainer(
-        default_root_dir=save_path,
-        max_epochs=max_epoch,
-        max_steps=max_step,
-        # gpus=gpus,
-        devices=gpus,
-        callbacks=callbacks,
-        # logger=loggers,
-        log_every_n_steps=log_every_n_steps,
-        check_val_every_n_epoch=check_val_every_n_epoch,
-        **additional_kwargs
-    )
-
     # write config file
     with open(os.path.join(save_path, "config.gin"), "w") as f:
         f.write(gin.operative_config_str())
 
-    trainer.fit(pl_module, data_module)
+    if augs:
+        resolutions = [0.02, 0.05, 0.10, 0.15]
+        per_step = 4800
+        ckpt_path = None
+
+        trainer = pl.Trainer(
+                    default_root_dir=save_path,
+                    max_epochs=max_epoch,
+                    # max_steps=max_step,
+                    # max_steps=per_step*(i+j+1),
+                    max_steps=0,
+                    gpus=gpus,
+                    devices=gpus,
+                    callbacks=callbacks,
+                    # logger=loggers,
+                    log_every_n_steps=log_every_n_steps,
+                    check_val_every_n_epoch=check_val_every_n_epoch,
+                    num_sanity_val_steps=0,
+                    # ckpt_path=ckpt_path
+                    **additional_kwargs
+                )
+        
+        for i in range(int(max_step/(per_step*4))):
+            for j in range(len(resolutions)):
+                gin.bind_parameter("DimensionlessCoordinates.voxel_size", resolutions[j])
+                print(gin.query_parameter("DimensionlessCoordinates.voxel_size"))
+
+                trainer.fit_loop.epoch_loop.max_steps += per_step
+                trainer.fit(pl_module, data_module)
+                # ckpt_path = os.path.join(save_path, 'last.ckpt')
+    else:
+        # print('---------------')
+        trainer = pl.Trainer(
+                    default_root_dir=save_path,
+                    max_epochs=max_epoch,
+                    max_steps=max_step,
+                    gpus=gpus,
+                    devices=gpus,
+                    callbacks=callbacks,
+                    # logger=loggers,
+                    log_every_n_steps=log_every_n_steps,
+                    check_val_every_n_epoch=check_val_every_n_epoch,
+                    num_sanity_val_steps=0,
+                    **additional_kwargs
+                )
+        trainer.fit(pl_module, data_module)
 
 
 if __name__ == "__main__":
@@ -154,6 +187,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=1235)
     parser.add_argument("-v", "--voxel_size", type=float, default=None)
     parser.add_argument("-g", "--gpus", type=int, default=1)
+    parser.add_argument("-a", "--augumentation", action="store_true")
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
@@ -164,10 +198,11 @@ if __name__ == "__main__":
     if args.gpus > 1:
         gin.bind_parameter("train.gpus", args.gpus)
         gin.bind_parameter("LitSegmentationModuleBase.lr", gin.query_parameter("LitSegmentationModuleBase.lr")*args.gpus)
+    
     save_path = os.path.join(
         args.save_path,
         gin.query_parameter("train.model_name") + '_' + str(gin.query_parameter("DimensionlessCoordinates.voxel_size"))[2:]
     )
     # setup_logger(args.run_name, args.debug)
 
-    train(save_path=save_path, run_name=args.run_name)
+    train(save_path=save_path, run_name=args.run_name, augs = args.augumentation)

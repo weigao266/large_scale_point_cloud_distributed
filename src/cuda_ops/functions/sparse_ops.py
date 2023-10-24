@@ -50,3 +50,4 @@ class ScalarAttention(Function):
     return grad_weight, grad_value, None, None
 
 scalar_attention_cuda = ScalarAttention.apply
+

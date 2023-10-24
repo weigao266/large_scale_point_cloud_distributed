@@ -57,6 +57,10 @@ class ElasticDistortion:
 
         # Create Gaussian noise tensor of the size given by granularity.
         noise_dim = ((coords - coords_min).max(0) // granularity).astype(int) + 3
+        # print(coords)
+        # print(coords_min)
+        # print(granularity)
+        # print(noise_dim)
         noise = np.random.randn(*noise_dim, 3).astype(np.float32)
 
         # Smoothing.
