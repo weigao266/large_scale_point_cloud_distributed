@@ -1,0 +1,8 @@
+include "./config/scannet/eval_res16unet34c.gin"
+
+# Model
+eval.model_name = "PointTNNSmaller"
+PointTNN.in_channels = %in_channels
+PointTNN.out_channels = %out_channels
+
+ScanNetRGBDataModule.val_batch_size = 2

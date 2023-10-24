@@ -132,7 +132,7 @@ def train(
         f.write(gin.operative_config_str())
 
     if augs:
-        resolutions = [0.02, 0.05, 0.10, 0.15]
+        resolutions = [0.02, 0.05, 0.10]
         per_step = 4800
         ckpt_path = None
 
