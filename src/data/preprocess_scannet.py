@@ -7,8 +7,8 @@ import numpy as np
 from plyfile import PlyData, PlyElement
 
 
-SCANNET_RAW_PATH = Path('../../data/ScanNet/ScanNet_v2') # you may need to modify this path.
-SCANNET_OUT_PATH = Path('../../data/ScanNet/scannet_processed') # you may need to modify this path.
+SCANNET_RAW_PATH = Path('/mnt/data/NLP_3090/lishidi/data/ScanNet/ScanNet_v2') # you may need to modify this path.
+SCANNET_OUT_PATH = Path('/mnt/data/NLP_3090/lishidi/data/ScanNet/scannet_processed') # you may need to modify this path.
 TRAIN_DEST = 'train'
 TEST_DEST = 'test'
 SUBSETS = {TRAIN_DEST: 'scans', TEST_DEST: 'scans_test'}

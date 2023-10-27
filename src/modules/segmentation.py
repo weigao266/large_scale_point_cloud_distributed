@@ -33,6 +33,7 @@ class LitSegmentationModuleBase(pl.LightningModule):
                 setattr(self, name, value)
 
         self.criterion = torch.nn.CrossEntropyLoss(ignore_index=ignore_label)
+        # import pdb; pdb.set_trace()
         self.best_metric_value = -np.inf if best_metric_type == "maximize" else np.inf
         self.metric = torchmetrics.ConfusionMatrix(
             num_classes=num_classes,

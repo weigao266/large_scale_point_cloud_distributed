@@ -73,7 +73,7 @@ logged_hparams.keys = \
 # Parameters for ScanNetRGBDataModule:
 # ==============================================================================
 ScanNetRGBDataModule.collation_type = 'collate_minkowski'
-ScanNetRGBDataModule.data_root = '../../data/ScanNet'
+ScanNetRGBDataModule.data_root = '/mnt/data/NLP_3090/lishidi/data/ScanNet'
 ScanNetRGBDataModule.eval_transforms = \
     ['DimensionlessCoordinates', 'NormalizeColor']
 ScanNetRGBDataModule.train_batch_size = 1

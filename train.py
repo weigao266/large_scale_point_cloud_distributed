@@ -98,6 +98,7 @@ def train(
     # gin.finalize()
 
     hparams = logged_hparams()
+    # import pdb; pdb.set_trace()
     callbacks = [
         pl.callbacks.TQDMProgressBar(refresh_rate=refresh_rate_per_second),
         pl.callbacks.ModelCheckpoint(
