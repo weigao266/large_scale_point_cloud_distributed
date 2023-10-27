@@ -5,7 +5,7 @@ in_channels = 3
 out_channels = 13
 
 # Data module
-S3DISArea5RGBDataModule.data_root = "/../../data/s3dis" # you need to modify this according to your data.
+S3DISArea5RGBDataModule.data_root = "/mnt/data/NLP_3090/lishidi/data/s3dis" # you need to modify this according to your data.
 S3DISArea5RGBDataModule.train_batch_size = 8
 S3DISArea5RGBDataModule.val_batch_size = 1
 S3DISArea5RGBDataModule.train_num_workers = 8

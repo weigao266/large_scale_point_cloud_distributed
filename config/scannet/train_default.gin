@@ -5,7 +5,7 @@ in_channels = 3
 out_channels = 20
 
 # Data module
-ScanNetRGBDataModule.data_root = "../../data/ScanNet" # you need to modify this according to your data.
+ScanNetRGBDataModule.data_root = "/mnt/data/NLP_3090/lishidi/data/ScanNet" # you need to modify this according to your data.
 ScanNetRGBDataModule.train_batch_size = 8
 ScanNetRGBDataModule.val_batch_size = 2
 ScanNetRGBDataModule.train_num_workers = 96
@@ -45,12 +45,12 @@ ElasticDistortion.distortion_params = [(4, 16)]
 ElasticDistortion.application_ratio = 0.7
 
 # Pytorch lightning module
-LitSegmentationModuleBase.num_classes = %out_channels
-LitSegmentationModuleBase.lr = 0.1
-LitSegmentationModuleBase.momentum = 0.9
-LitSegmentationModuleBase.weight_decay = 1e-4
-LitSegmentationModuleBase.warmup_steps_ratio = 0.1
-LitSegmentationModuleBase.best_metric_type = "maximize"
+SegmentationTrainer.num_classes = %out_channels
+SegmentationTrainer.lr = 0.1
+SegmentationTrainer.momentum = 0.9
+SegmentationTrainer.weight_decay = 1e-4
+SegmentationTrainer.warmup_steps_ratio = 0.1
+SegmentationTrainer.best_metric_type = "maximize"
 
 # Training
 train.data_module_name = "ScanNetRGBDataModule"
@@ -59,7 +59,7 @@ train.log_every_n_steps = 10
 train.check_val_every_n_epoch = 1
 train.refresh_rate_per_second = 1
 train.best_metric = "val_mIoU"
-train.max_epoch = None
+train.max_epoch = 10
 # train.max_step = 100000
 train.max_step = 400000
 
@@ -82,9 +82,9 @@ logged_hparams.keys = [
     "ChromaticJitter.application_ratio",
     "ElasticDistortion.distortion_params",
     "ElasticDistortion.application_ratio",
-    "LitSegmentationModuleBase.lr",
-    "LitSegmentationModuleBase.momentum",
-    "LitSegmentationModuleBase.weight_decay",
-    "LitSegmentationModuleBase.warmup_steps_ratio",
+    "SegmentationTrainer.lr",
+    "SegmentationTrainer.momentum",
+    "SegmentationTrainer.weight_decay",
+    "SegmentationTrainer.warmup_steps_ratio",
     "train.max_step",
 ]
