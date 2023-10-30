@@ -137,10 +137,12 @@ class FastPointTransformer(nn.Module):
     LAYER = LightweightSelfAttentionLayer
     BLOCK = LightweightSelfAttentionBlock
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, activation_checkpointing):
         super(FastPointTransformer, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
+        
+        self.activation_checkpointing = activation_checkpointing
         
         self.enc_mlp = nn.Sequential(
             nn.Linear(3, self.ENC_DIM, bias=False),
@@ -257,50 +259,114 @@ class FastPointTransformer(nn.Module):
         norm_points_p2 = self.normalize_centroids(points_p2, out.C, out.tensor_stride[0])
 
         for module in self.block1:
-            out = module(out, norm_points_p2)
+            if not self.activation_checkpointing:
+                out = module(out, norm_points_p2)
+            else:
+                def create_custom_forward(module_in):
+                    def custom_forward(*inputs):
+                        # None for past_key_value
+                        return module_in(*inputs)
+                    return custom_forward
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p2)
         out_p2 = self.relu(self.bn2(self.attn2p2(out, norm_points_p2)))
         out, points_p4, count_p4 = self.pool(out_p2, points_p2, count_p2)
         norm_points_p4 = self.normalize_centroids(points_p4, out.C, out.tensor_stride[0])
 
         for module in self.block2:
-            out = module(out, norm_points_p4)
+            if not self.activation_checkpointing:
+                out = module(out, norm_points_p4)
+            else:
+                def create_custom_forward(module_in):
+                    def custom_forward(*inputs):
+                        # None for past_key_value
+                        return module_in(*inputs)
+                    return custom_forward
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p4)
         out_p4 = self.relu(self.bn3(self.attn3p4(out, norm_points_p4)))
         out, points_p8, count_p8 = self.pool(out_p4, points_p4, count_p4)
         norm_points_p8 = self.normalize_centroids(points_p8, out.C, out.tensor_stride[0])
 
         for module in self.block3:
-            out = module(out, norm_points_p8)
+            if not self.activation_checkpointing:
+                out = module(out, norm_points_p8)
+            else:
+                def create_custom_forward(module_in):
+                    def custom_forward(*inputs):
+                        # None for past_key_value
+                        return module_in(*inputs)
+                    return custom_forward
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p8)
         out_p8 = self.relu(self.bn4(self.attn4p8(out, norm_points_p8)))
         out, points_p16 = self.pool(out_p8, points_p8, count_p8)[:2]
         norm_points_p16 = self.normalize_centroids(points_p16, out.C, out.tensor_stride[0])
 
         ## ======================================================================================
         for module in self.block4:
-            out = module(out, norm_points_p16)
+            if not self.activation_checkpointing:
+                out = module(out, norm_points_p16)
+            else:
+                def create_custom_forward(module_in):
+                    def custom_forward(*inputs):
+                        # None for past_key_value
+                        return module_in(*inputs)
+                    return custom_forward
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p16)
         out = self.pooltr(out)
 
         out = ME.cat(out, out_p8)
         out = self.relu(self.bn5(self.attn5p8(out, norm_points_p8)))
         for module in self.block5:
-            out = module(out, norm_points_p8)
+            if not self.activation_checkpointing:
+                out = module(out, norm_points_p8)
+            else:
+                def create_custom_forward(module_in):
+                    def custom_forward(*inputs):
+                        # None for past_key_value
+                        return module_in(*inputs)
+                    return custom_forward
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p8)
         out = self.pooltr(out)
 
         out = ME.cat(out, out_p4)
         out = self.relu(self.bn6(self.attn6p4(out, norm_points_p4)))
         for module in self.block6:
-            out = module(out, norm_points_p4)
+            if not self.activation_checkpointing:
+                out = module(out, norm_points_p4)
+            else:
+                def create_custom_forward(module_in):
+                    def custom_forward(*inputs):
+                        # None for past_key_value
+                        return module_in(*inputs)
+                    return custom_forward
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p4)
         out = self.pooltr(out)
 
         out = ME.cat(out, out_p2)
         out = self.relu(self.bn7(self.attn7p2(out, norm_points_p2)))
         for module in self.block7:
-            out = module(out, norm_points_p2)
+            if not self.activation_checkpointing:
+                out = module(out, norm_points_p2)
+            else:
+                def create_custom_forward(module_in):
+                    def custom_forward(*inputs):
+                        # None for past_key_value
+                        return module_in(*inputs)
+                    return custom_forward
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p2)
         out = self.pooltr(out)
 
         out = ME.cat(out, out_p1)
         out = self.relu(self.bn8(self.attn8p1(out, norm_points_p1)))
         for module in self.block8:
-            out = module(out, norm_points_p1)
+            if not self.activation_checkpointing:
+                out = module(out, norm_points_p1)
+            else:
+                def create_custom_forward(module_in):
+                    def custom_forward(*inputs):
+                        # None for past_key_value
+                        return module_in(*inputs)
+                    return custom_forward
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p1)
 
         out = self.devoxelize_with_centroids(out, x, pos_embs)
         return out
