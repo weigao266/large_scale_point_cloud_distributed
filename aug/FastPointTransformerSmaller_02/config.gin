@@ -33,7 +33,7 @@ LightweightSelfAttentionLayer.stride = 1
 LitSegmentationModuleBase.best_metric_type = 'maximize'
 LitSegmentationModuleBase.dist_sync_metric = False
 LitSegmentationModuleBase.ignore_label = 255
-LitSegmentationModuleBase.lr = 0.8
+LitSegmentationModuleBase.lr = 0.6000000000000001
 LitSegmentationModuleBase.lr_eta_min = 0.0
 LitSegmentationModuleBase.momentum = 0.9
 LitSegmentationModuleBase.num_classes = %out_channels
@@ -77,7 +77,7 @@ ScanNetRGBDataModule.data_root = '/mnt/data/NLP_3090/lishidi/data/ScanNet'
 ScanNetRGBDataModule.eval_transforms = \
     ['DimensionlessCoordinates', 'NormalizeColor']
 ScanNetRGBDataModule.train_batch_size = 1
-ScanNetRGBDataModule.train_num_workers = 16
+ScanNetRGBDataModule.train_num_workers = 96
 ScanNetRGBDataModule.train_transforms = \
     ['DimensionlessCoordinates',
      'RandomRotation',
@@ -91,18 +91,18 @@ ScanNetRGBDataModule.train_transforms = \
      'ElasticDistortion',
      'NormalizeColor']
 ScanNetRGBDataModule.val_batch_size = 1
-ScanNetRGBDataModule.val_num_workers = 16
+ScanNetRGBDataModule.val_num_workers = 64
 
 # Parameters for train:
 # ==============================================================================
 train.best_metric = 'val_mIoU'
 train.check_val_every_n_epoch = 1
 train.data_module_name = 'ScanNetRGBDataModule'
-train.gpus = 8
+train.gpus = 6
 train.lightning_module_name = 'LitSegMinkowskiModule'
 train.log_every_n_steps = 10
 train.max_epoch = None
-train.max_step = 400000
+train.max_step = 600000
 train.model_name = 'FastPointTransformerSmaller'
 train.project_name = 'FastPointTransformer-release'
 train.refresh_rate_per_second = 1

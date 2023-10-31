@@ -234,13 +234,13 @@ class Tno(nn.Module):
         # a: h, l, d
         # print(x.size())
         # print(a.size())
-        output = self.compute(x, a, dim, n)[:, :, :n, :]
+        output = self.compute(x, a, dim, m)[:, :, :n, :]
         # print(output.size())
 
         if normalize:
             size = list(x.shape[:-1]) + [1]
             ones = torch.ones(size).to(x)
-            denorm = self.compute(ones, a, dim, n)
+            denorm = self.compute(ones, a, dim, m)
             output = output / denorm
 
         return output
@@ -248,11 +248,14 @@ class Tno(nn.Module):
     def compute(self, x, a, dim, n):
         # x: b, h, n, d
         # a: h, 2*n, d
-        n_adj = next_power_of_2(n)
+        # n_adj = next_power_of_2(n)
         # print(n_adj)
         # print('---------------')
         # print(x.size())
         # print(a.size())
+        # print(x.size())
+        # print(n)
+        # print('-------------------------------')
         y = torch.fft.rfft(x, 2 * n, dim=dim)
         v = torch.fft.rfft(a, 2 * n, dim=dim).unsqueeze(0)
         # print('-----------------')

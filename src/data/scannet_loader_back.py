@@ -146,9 +146,9 @@ class ScanNetRGBDataset(ScanNetDatasetBase):
         coords, feats, labels = self.get_cfl_from_data(data)
         if self.transform is not None:
             coords, feats, labels = self.transform(coords, feats, labels)
-        coords = torch.from_numpy(coords)
-        feats = torch.from_numpy(feats)
-        labels = torch.from_numpy(labels)
+        coords = torch.from_numpy(coords)[:4096,:]
+        feats = torch.from_numpy(feats)[:4096,:]
+        labels = torch.from_numpy(labels)[:4096]
         # print(coords.size())
 
         return coords.float(), feats.float(), labels.long(), None

@@ -67,6 +67,8 @@ class LitSegmentationModuleBase(pl.LightningModule):
         in_data = self.prepare_input_data(batch)
         # print(in_data.get_device())
         logits = self.model(in_data)
+        # print(logits.size())
+        # print(batch["labels"].size())
         loss = self.criterion(logits, batch["labels"])
         self.log("train_loss", loss.item(), batch_size=batch["batch_size"], logger=True, prog_bar=True)
         
@@ -113,12 +115,12 @@ class LitSegmentationModuleBase(pl.LightningModule):
 @gin.configurable
 class LitSegMinkowskiModule(LitSegmentationModuleBase):
     def prepare_input_data(self, batch):
-        in_data = ME.TensorField(
-            features=batch["features"],
-            coordinates=batch["coordinates"],
-            quantization_mode=self.model.QMODE
-        )
-        # print('+++++++++++++++++++++++++++++++')
+        # in_data = ME.TensorField(
+        #     features=batch["features"],
+        #     coordinates=batch["coordinates"],
+        #     quantization_mode=self.model.QMODE
+        # )
+        in_data = batch["coordinates"]
         # print(batch["features"].size())
         # print(batch["coordinates"].size())
         # print(batch["batch_size"])

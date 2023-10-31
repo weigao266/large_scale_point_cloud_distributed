@@ -134,7 +134,7 @@ def train(
 
     if augs:
         resolutions = [0.02, 0.05, 0.10]
-        per_step = 4800
+        per_step = 20000
         ckpt_path = None
 
         trainer = pl.Trainer(
