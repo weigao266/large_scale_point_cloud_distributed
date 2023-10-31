@@ -1,0 +1,1 @@
+python train_new.py config/scannet/train_ddp_test.gin --voxel_size 0.02 --gpus 1

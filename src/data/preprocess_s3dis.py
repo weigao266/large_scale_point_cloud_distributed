@@ -7,8 +7,8 @@ from tqdm import tqdm
 from plyfile import PlyData, PlyElement
 
 
-STANFORD_3D_IN_PATH = '../../data/s3dis/Stanford3dDataset_v1.2/' # you may need to modify this path.
-STANFORD_3D_OUT_PATH = '../../data/s3dis/s3dis_processed' # you may need to modify this path.
+STANFORD_3D_IN_PATH = '/mnt/data/NLP_3090/lishidi/data/s3dis/Stanford3dDataset_v1.2/' # you may need to modify this path.
+STANFORD_3D_OUT_PATH = '/mnt/data/NLP_3090/lishidi/data/s3dis/s3dis_processed' # you may need to modify this path.
 IGNORE_LABEL = 255
 
 
