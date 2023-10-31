@@ -11,10 +11,6 @@ import src.cuda_ops.functions.sparse_ops as ops
 
 from src.tnn_module.tnn_layer import TnnLayer
 
-
-# from lightning.pytorch import LightningModule
-
-
 class MaxPoolWithPoints(nn.Module):
 # class MaxPoolWithPoints(LightningModule):
     def __init__(self, kernel_size=2, stride=2):
@@ -165,10 +161,12 @@ class PointTNN(nn.Module):
     assert len(PLANES) == len(LAYERS) + 1
     assert U_layers*2 == len(LAYERS)
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, activation_checkpointing):
         super(PointTNN, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
+        
+        self.activation_checkpointing = activation_checkpointing
         
         self.enc_mlp = nn.Sequential(
             nn.Linear(3, self.ENC_DIM, bias=False),
@@ -274,8 +272,18 @@ class PointTNN(nn.Module):
         print(type(x.C[:, 1:]))
         out, norm_points_p1, points_p1, count_p1, pos_embs = self.voxelize_with_centroids(x)
 
-        ## feature mappingtes
-        out = self.init_feature_mappings(out, norm_points_p1) ## feature mapping
+
+        ## feature mapping
+        if not self.activation_checkpointing:
+            out = self.init_feature_mappings(out, norm_points_p1) ## feature mapping
+        else:
+            def create_custom_forward(module_in):
+                def custom_forward(*inputs):
+                    # None for past_key_value
+                    return module_in(*inputs)
+                return custom_forward
+            out = torch.utils.checkpoint.checkpoint(create_custom_forward(self.init_feature_mappings), out, norm_points_p1)
+
         # print(out.size())
         # print(out.get_device())
         # print(norm_points_p1.get_device())
@@ -287,11 +295,29 @@ class PointTNN(nn.Module):
         for i in range(self.U_layers):
             # print(norm_points[i].get_device())
             # print(out.get_device())
-            outs_tmp = self.down_feature_mappings[i](out, norm_points[i])
+            if not self.activation_checkpointing:
+                outs_tmp = self.down_feature_mappings[i](out, norm_points[i])
+            else:
+                def create_custom_forward(module_in):
+                    def custom_forward(*inputs):
+                        # None for past_key_value
+                        return module_in(*inputs)
+                    return custom_forward
+                outs_tmp = torch.utils.checkpoint.checkpoint(create_custom_forward(self.down_feature_mappings[i]), out, norm_points[i])
+
             out, points, counts = self.pool(outs_tmp, points, counts)
             tmp_norm_points = self.normalize_centroids(points, out.C, out.tensor_stride[0])
             for module in self.down_blocks[i]:
-                out = module(out, tmp_norm_points)
+                if not self.activation_checkpointing:
+                    out = module(out, tmp_norm_points)
+                else:
+                    def create_custom_forward(module_in):
+                        def custom_forward(*inputs):
+                            # None for past_key_value
+                            return module_in(*inputs)
+                        return custom_forward
+                    out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, tmp_norm_points)
+
             ## have the i + 1 item
             norm_points.append(tmp_norm_points)
             outs.append(outs_tmp)
@@ -302,9 +328,26 @@ class PointTNN(nn.Module):
         for i in range(self.U_layers):
             out = self.pooltr(out)
             out = ME.cat(out, outs[-(i+1)])
-            out = self.up_feature_mappings[i](out, norm_points[-(i+2)])
+            
+            if not self.activation_checkpointing:
+                out = self.up_feature_mappings[i](out, norm_points[-(i+2)])
+            else:
+                def create_custom_forward(module_in):
+                    def custom_forward(*inputs):
+                        # None for past_key_value
+                        return module_in(*inputs)
+                    return custom_forward
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(self.up_feature_mappings[i]), out, norm_points[-(i+2)])
             for module in self.up_blocks[i]:
-                out = module(out, norm_points[-(i+2)])
+                if not self.activation_checkpointing:
+                    out = module(out, norm_points[-(i+2)])
+                else:
+                    def create_custom_forward(module_in):
+                        def custom_forward(*inputs):
+                            # None for past_key_value
+                            return module_in(*inputs)
+                        return custom_forward
+                    out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points[-(i+2)])
             # print(out.size())
 
 
