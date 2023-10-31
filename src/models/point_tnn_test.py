@@ -107,6 +107,7 @@ class TnnLayer_ME(nn.Module):
         # query, key, value, and relative positional encoding
         intra_pos_enc = self.intra_pos_mlp(norm_points)
         # print(intra_pos_enc.size())
+        # print(stensor.size())
         stensor = stensor + intra_pos_enc ## g_i
         # print(stensor.size())
 
@@ -169,60 +170,106 @@ class PointTNN(nn.Module):
         super(PointTNN, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
+
+
+        # self.enc_mlp = nn.Sequential(
+        #     nn.Linear(3, self.ENC_DIM, bias=False),
+        #     nn.BatchNorm1d(self.ENC_DIM),
+        #     nn.Tanh(),
+        #     nn.Linear(self.ENC_DIM, self.ENC_DIM, bias=False),
+        #     nn.BatchNorm1d(self.ENC_DIM),
+        #     nn.Tanh()
+        # )
         
         self.enc_mlp = nn.Sequential(
-            nn.Linear(3, self.ENC_DIM, bias=False),
+            nn.Conv1d(3, self.ENC_DIM, kernel_size=1, bias=False),
             nn.BatchNorm1d(self.ENC_DIM),
             nn.Tanh(),
-            nn.Linear(self.ENC_DIM, self.ENC_DIM, bias=False),
+            nn.Conv1d(self.ENC_DIM, self.ENC_DIM, kernel_size=1, bias=False),
             nn.BatchNorm1d(self.ENC_DIM),
             nn.Tanh()
         )
 
+        # self.conv1 = nn.Sequential(
+        #     nn.Conv1d(self.ENC_DIM, self.ENC_DIM, kernel_size=1, stride=1),
+        #     nn.BatchNorm1d(self.ENC_DIM),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv1d(self.ENC_DIM, self.ENC_DIM, kernel_size=1, stride=1),
+        #     nn.BatchNorm1d(self.ENC_DIM),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv1d(self.ENC_DIM, self.ENC_DIM, kernel_size=1, stride=1),
+        #     nn.BatchNorm1d(self.ENC_DIM),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv1d(self.ENC_DIM, self.ENC_DIM, kernel_size=1, stride=1),
+        #     nn.BatchNorm1d(self.ENC_DIM),
+        #     nn.ReLU(inplace=True),
+        #     # ME.MinkowskiSumPooling(kernel_size=2, stride=2, dimension=D),
+        # )
 
-        ## the first layer
-        self.init_feature_mappings = TnnLayer_ME(
-            in_channels=in_channels + self.ENC_DIM, out_channels =  self.PLANES[0], 
-            num_heads=8, rpe_embedding=32, glu_dim=64
-            )
 
-        self.down_feature_mappings = nn.ModuleList()
-        self.down_blocks = nn.ModuleList()
-        
-        for i in range(self.U_layers):
-            self.down_feature_mappings.append(
-                TnnLayer_ME(
-                    in_channels=self.PLANES[i], out_channels =  self.PLANES[i+1], 
-                    num_heads=8, rpe_embedding=32, glu_dim=64
+        self.feature_mappings = nn.Sequential()
+        for i in range(3):
+            self.feature_mappings.append(
+                TnnLayer(
+                    dim=self.ENC_DIM, num_heads=8, rpe_embedding=32, glu_dim=64
                     )
-            )
-            self.down_blocks.append(
-                nn.ModuleList([TnnLayer_ME(self.PLANES[i+1]) for _ in range(self.LAYERS[i])])
-            )
+                )
 
-        ## ========================================upsampling
-        self.up_feature_mappings = nn.ModuleList()
-        self.up_blocks = nn.ModuleList()
-        for i in range(self.U_layers):
-            self.up_feature_mappings.append(
-                TnnLayer_ME(
-                    in_channels = self.PLANES[i+self.U_layers] + self.PLANES[self.U_layers-i], out_channels = self.PLANES[i+self.U_layers+1],
-                    num_heads=8, rpe_embedding=32, glu_dim=64
-                    )
-            )
-            self.up_blocks.append(
-                nn.ModuleList([TnnLayer_ME(self.PLANES[i+self.U_layers+1]) for _ in range(self.LAYERS[i+self.U_layers])])
-            )
+        # self.feature_mappings = TnnLayer(
+        #     dim=self.ENC_DIM, num_heads=8, rpe_embedding=32, glu_dim=64
+        #     )
 
         self.final = nn.Sequential(
-            nn.Linear(self.PLANES[-1] + self.ENC_DIM, self.PLANES[-1], bias=False),
-            nn.BatchNorm1d(self.PLANES[-1]),
+            nn.Conv1d(self.ENC_DIM, self.ENC_DIM, kernel_size=1, bias=False),
+            nn.BatchNorm1d(self.ENC_DIM),
             nn.ReLU(inplace=True),
-            nn.Linear(self.PLANES[-1], out_channels)
+            nn.Conv1d(self.ENC_DIM, out_channels, kernel_size=1)
         )
 
-        self.pool = MaxPoolWithPoints()
-        self.pooltr = ME.MinkowskiPoolingTranspose(kernel_size=2, stride=2, dimension=3)
+
+        # ## the first layer
+        # self.init_feature_mappings = TnnLayer_ME(
+        #     in_channels=in_channels + self.ENC_DIM, out_channels =  self.PLANES[0], 
+        #     num_heads=8, rpe_embedding=32, glu_dim=64
+        #     )
+
+        # self.down_feature_mappings = nn.ModuleList()
+        # self.down_blocks = nn.ModuleList()
+        
+        # for i in range(self.U_layers):
+        #     self.down_feature_mappings.append(
+        #         TnnLayer_ME(
+        #             in_channels=self.PLANES[i], out_channels =  self.PLANES[i+1], 
+        #             num_heads=8, rpe_embedding=32, glu_dim=64
+        #             )
+        #     )
+        #     self.down_blocks.append(
+        #         nn.ModuleList([TnnLayer_ME(self.PLANES[i+1]) for _ in range(self.LAYERS[i])])
+        #     )
+
+        # ## ========================================upsampling
+        # self.up_feature_mappings = nn.ModuleList()
+        # self.up_blocks = nn.ModuleList()
+        # for i in range(self.U_layers):
+        #     self.up_feature_mappings.append(
+        #         TnnLayer_ME(
+        #             in_channels = self.PLANES[i+self.U_layers] + self.PLANES[self.U_layers-i], out_channels = self.PLANES[i+self.U_layers+1],
+        #             num_heads=8, rpe_embedding=32, glu_dim=64
+        #             )
+        #     )
+        #     self.up_blocks.append(
+        #         nn.ModuleList([TnnLayer_ME(self.PLANES[i+self.U_layers+1]) for _ in range(self.LAYERS[i+self.U_layers])])
+        #     )
+
+        # self.final = nn.Sequential(
+        #     nn.Linear(self.PLANES[-1] + self.ENC_DIM, self.PLANES[-1], bias=False),
+        #     nn.BatchNorm1d(self.PLANES[-1]),
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(self.PLANES[-1], out_channels)
+        # )
+
+        # self.pool = MaxPoolWithPoints()
+        # self.pooltr = ME.MinkowskiPoolingTranspose(kernel_size=2, stride=2, dimension=3)
 
     @torch.no_grad()
     def normalize_points(self, points, centroids, tensor_map):
@@ -248,14 +295,24 @@ class PointTNN(nn.Module):
         points_p1, count_p1 = downsample_points(points, tensor_map, field_map, size)
 
         norm_points = self.normalize_points(points, points_p1, tensor_map)
+        # print(norm_points.size())
 
         pos_embs = self.enc_mlp(norm_points)
         down_pos_embs = downsample_embeddings(pos_embs, tensor_map, size, mode="avg")
         # print(out.F.size())
         # print(down_pos_embs.size())
+        # out = ME.SparseTensor(torch.cat([out.F, down_pos_embs], dim=1),
+        #                     coordinate_map_key=out.coordinate_key,
+        #                     coordinate_manager=cm)
+        # print(out.F.size())
+        # print(out.C.size())
+        # print(down_pos_embs.size())
         out = ME.SparseTensor(torch.cat([out.F, down_pos_embs], dim=1),
                             coordinate_map_key=out.coordinate_key,
                             coordinate_manager=cm)
+        # out = ME.SparseTensor(torch.cat([out.C[:, 1:], down_pos_embs], dim=1),
+        #                     coordinate_map_key=out.coordinate_key,
+        #                     coordinate_manager=cm)
 
         norm_points_p1 = self.normalize_centroids(points_p1, out.C, out.tensor_stride[0])
         return out, norm_points_p1, points_p1, count_p1, pos_embs
@@ -270,47 +327,65 @@ class PointTNN(nn.Module):
     def forward(self, x):
         ## voxelization
         # print(x.size())
-        print(x.C[:, 1:].size())
-        print(type(x.C[:, 1:]))
-        out, norm_points_p1, points_p1, count_p1, pos_embs = self.voxelize_with_centroids(x)
-
-        ## feature mappingtes
-        out = self.init_feature_mappings(out, norm_points_p1) ## feature mapping
+        # print(x.C[:, 1:].size())
+        # x = x.C[:, 1:].unsqueeze(0)
+        # x = x.C[:, :, 1:]
+        # print(x.size())
+        out = self.enc_mlp(x.transpose(-1, -2).contiguous())
+        # print(out.transpose(-1, -2).contiguous().size())
         # print(out.size())
-        # print(out.get_device())
-        # print(norm_points_p1.get_device())
+        # out = self.conv1(out)
+        # print(out.size())
+        # out = self.final(out)
+        # print(out.size())
+        out = self.feature_mappings(out.transpose(-1, -2).contiguous())
+        # print(out.size())
+        out = self.final(out.transpose(-1, -2).contiguous())
+        # print(out.size())
+        # out = out.transpose(-1, -2).contiguous().squeeze(0)
+        # print(out.size())
+        # print('-------------------')
 
-        outs = []
-        norm_points = []; norm_points.append(norm_points_p1)
-        points = points_p1
-        counts = count_p1
-        for i in range(self.U_layers):
-            # print(norm_points[i].get_device())
-            # print(out.get_device())
-            outs_tmp = self.down_feature_mappings[i](out, norm_points[i])
-            out, points, counts = self.pool(outs_tmp, points, counts)
-            tmp_norm_points = self.normalize_centroids(points, out.C, out.tensor_stride[0])
-            for module in self.down_blocks[i]:
-                out = module(out, tmp_norm_points)
-            ## have the i + 1 item
-            norm_points.append(tmp_norm_points)
-            outs.append(outs_tmp)
-            # print(out.size())
+        # out, norm_points_p1, points_p1, count_p1, pos_embs = self.voxelize_with_centroids(x)
+        # # print(out.size())
 
-        # ## ======================================================================================
+        # ## feature mappingtes
+        # out = self.init_feature_mappings(out, norm_points_p1) ## feature mapping
+        # # print(out.size())
+        # # print(out.get_device())
+        # # print(norm_points_p1.get_device())
+
+        # outs = []
+        # norm_points = []; norm_points.append(norm_points_p1)
+        # points = points_p1
+        # counts = count_p1
+        # for i in range(self.U_layers):
+        #     # print(norm_points[i].get_device())
+        #     # print(out.get_device())
+        #     outs_tmp = self.down_feature_mappings[i](out, norm_points[i])
+        #     out, points, counts = self.pool(outs_tmp, points, counts)
+        #     tmp_norm_points = self.normalize_centroids(points, out.C, out.tensor_stride[0])
+        #     for module in self.down_blocks[i]:
+        #         out = module(out, tmp_norm_points)
+        #     ## have the i + 1 item
+        #     norm_points.append(tmp_norm_points)
+        #     outs.append(outs_tmp)
+        #     # print(out.size())
+
+        # # ## ======================================================================================
         
-        for i in range(self.U_layers):
-            out = self.pooltr(out)
-            out = ME.cat(out, outs[-(i+1)])
-            out = self.up_feature_mappings[i](out, norm_points[-(i+2)])
-            for module in self.up_blocks[i]:
-                out = module(out, norm_points[-(i+2)])
-            # print(out.size())
+        # for i in range(self.U_layers):
+        #     out = self.pooltr(out)
+        #     out = ME.cat(out, outs[-(i+1)])
+        #     out = self.up_feature_mappings[i](out, norm_points[-(i+2)])
+        #     for module in self.up_blocks[i]:
+        #         out = module(out, norm_points[-(i+2)])
+        #     # print(out.size())
 
 
-        # print(out.F.size())
-        out = self.devoxelize_with_centroids(out, x, pos_embs)
-        # print(out.size())
+        # # print(out.F.size())
+        # out = self.devoxelize_with_centroids(out, x, pos_embs)
+        # # print(out.size())
         return out
 
 

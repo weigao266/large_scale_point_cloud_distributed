@@ -4,7 +4,8 @@ from src.models.spvcnn import SPVCNN
 import src.models.resnet as resnets
 import src.models.resunet as resunets
 import src.models.fast_point_transformer as transformers
-import src.models.point_tnn as tnn
+# import src.models.point_tnn as tnn
+import src.models.point_tnn_test as tnn
 
 MODELS = [SPVCNN]
 # MODELS = [transformers]

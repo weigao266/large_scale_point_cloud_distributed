@@ -1,6 +1,8 @@
 import logging
 
 from src.data.scannet_loader import *
+# from src.data.scannet_loader_backup import *
+
 from src.data.s3dis_loader import *
 
 ALL_DATA_MODULES = [
