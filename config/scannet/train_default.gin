@@ -13,7 +13,7 @@ ScanNetRGBDataModule.val_batch_size = 2
 ScanNetRGBDataModule.train_num_workers = 16
 ScanNetRGBDataModule.val_num_workers = 16
 ScanNetRGBDataModule.collation_type = "collate_minkowski"
-ScanNetRGBDataModule.collation_type = "collate_new"
+# ScanNetRGBDataModule.collation_type = "collate_new"
 ScanNetRGBDataModule.train_transforms = [
     "DimensionlessCoordinates",
     "RandomRotation",
@@ -60,7 +60,7 @@ train.log_every_n_steps = 10
 train.check_val_every_n_epoch = 1
 train.refresh_rate_per_second = 1
 train.best_metric = "val_mIoU"
-train.max_epoch = 10
+train.max_epoch = 0
 # train.max_step = 100000
 train.max_step = 600000
 

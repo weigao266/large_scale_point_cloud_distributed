@@ -1,6 +1,7 @@
 import argparse
 import os
 from datetime import datetime
+import time
 
 import gin
 import pytorch_lightning as pl
@@ -39,6 +40,7 @@ def train(
     max_epoch,
     max_step,
     augs,
+    resume_path,
 ):
     now = datetime.now().strftime('%m-%d-%H-%M-%S')
     run_name = run_name + "_" + now
@@ -67,22 +69,82 @@ def train(
     train_dataloader = data_module.train_dataloader()
     val_dataloader = data_module.val_dataloader()
 
-    trainer = SegmentationTrainer(model=model, max_steps=max_step, device=device)
+    trainer = SegmentationTrainer(model=model, max_steps=max_step, max_epoch=max_epoch, device=device)
 
     optimizer_lrscheduler = trainer.configure_optimizer_lrscheduler()
 
-    for epoch in range(max_epoch):
+    init_epoch = 0
+    if resume_path is not None:
+        ckpt = torch.load(resume_path)
+        trainer.model.load_state_dict(ckpt['model_state_dict'])
+        trainer.optimizer.load_state_dict(ckpt['optimizer_state_dict'])
+        init_epoch = ckpt['epoch']
+
+    # print(len(train_dataloader))
+    batch_size = gin.query_parameter("ScanNetRGBDataModule.train_batch_size")
+    max_epoch = max_epoch if max_epoch != 0 else int(max_step/(len(train_dataloader)/batch_size))
+    trainer.max_epoch = max_epoch
+    for epoch in range(init_epoch, max_epoch):
         # train for one epoch
         # import pdb; pdb.set_trace()
-        train_one_epoch(hparams, trainer, train_dataloader, epoch, device)
+        train_one_epoch(hparams, trainer, train_dataloader, epoch + init_epoch, max_epoch, save_path, device)
 
-def train_one_epoch(hparams, trainer, train_dataloader, epoch, device):
+        if check_val_every_n_epoch != 0 and (epoch % check_val_every_n_epoch == 0):
+            # print(len(val_dataloader))
+            val_one_epoch(hparams, trainer, val_dataloader, epoch + init_epoch, save_path, device)
+
+
+def val_one_epoch(hparams, trainer, dataloader, epoch, save_path, device):
+    mloss = 0
+    for i, batch in enumerate(dataloader):
+
+        # move data to the same device as model
+        # import pdb; pdb.set_trace()
+        loss = trainer.val_one_step(batch)
+
+        # print("Iterations:", str(i),
+        #       "Train Loss", loss.item(),
+        #       )
+
+        mloss += loss.item()
+        del loss
+
+    print("Epoch val loss:", str(mloss/(i+1)))
+    
+    trainer.on_validation_epoch_end(epoch, save_path)
+
+def train_one_epoch(hparams, trainer, train_dataloader, epoch, max_epoch, save_path, device):
+    mloss = 0
+    et = time.time()
     
     for i, batch in enumerate(train_dataloader):
 
         # move data to the same device as model
         # import pdb; pdb.set_trace()
-        trainer.train_one_step(batch)
+        t0 = time.time()
+        loss = trainer.train_one_step(batch)
+
+        print("Iterations / Epochs / Total Epochs:", str(i), "/", str(epoch), "/", str(max_epoch),
+              "Train Loss:", loss.item(), 
+              "Batch Size:", batch["batch_size"], 
+              "Batch Time:", str(time.time()-t0), 'seconds',
+              )
+
+        mloss += loss.item()
+        del loss
+
+    print("Epochs / Total Epoch:", str(epoch), "/", str(max_epoch),
+          "Epoch train loss:", str(mloss/(i+1)), 
+          "Epoch Time:", str((time.time()-et)/3600), 'hours',
+          )
+
+    if save_path is not None:
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': trainer.model.state_dict(),
+            'optimizer_state_dict': trainer.optimizer.state_dict(),
+            }, os.path.join(save_path, 'last.ckpt')
+        )
 
 
 if __name__ == "__main__":
@@ -94,6 +156,7 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--voxel_size", type=float, default=None)
     parser.add_argument("-g", "--gpus", type=int, default=1)
     parser.add_argument("-a", "--augumentation", action="store_true")
+    parser.add_argument("-r", "--resume_path", type=str, default=None)
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
@@ -113,4 +176,4 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         device = torch.device("cuda")
 
-    train(save_path=save_path, run_name=args.run_name, augs=args.augumentation)
+    train(save_path=save_path, run_name=args.run_name, augs=args.augumentation, resume_path=args.resume_path)
