@@ -83,7 +83,6 @@ class SegmentationTrainer(object):
         input_data = ME.TensorField(
             features=features,
             coordinates=coordinates,
-            quantization_mode=self.model.QMODE
         )
 
         logits = self.model(input_data)
@@ -111,7 +110,6 @@ class SegmentationTrainer(object):
             input_data = ME.TensorField(
                 features=features,
                 coordinates=coordinates,
-                quantization_mode=self.model.QMODE
             )
 
             logits = self.model(input_data)
@@ -123,7 +121,7 @@ class SegmentationTrainer(object):
 
         return loss
 
-    def on_validation_epoch_end(self, epoch, save_path=None):
+    def on_validation_epoch_end(self, epoch, master_process, save_path=None):
         confusion_matrix = self.metric.compute().cpu().numpy()
         self.metric.reset()
         ious = per_class_iou(confusion_matrix) * 100
@@ -134,20 +132,21 @@ class SegmentationTrainer(object):
         def compare(prev, cur):
             return prev < cur if self.best_metric_type == "maximize" else prev > cur
         
-        if compare(self.best_metric_value, miou):
-            self.best_metric_value = miou
-            if save_path is not None:
-                torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': self.model.state_dict(),
-                    'optimizer_state_dict': self.optimizer.state_dict(),
-                    }, os.path.join(save_path, 'best_epoch_' + str(epoch) + '_iter_' + str(int(self.max_steps*epoch/self.max_epoch)) + '.ckpt')
-                )
+        if master_process:
+            if compare(self.best_metric_value, miou):
+                self.best_metric_value = miou
+                if save_path is not None:
+                    torch.save({
+                        'epoch': epoch,
+                        'model_state_dict': self.model.state_dict(),
+                        'optimizer_state_dict': self.optimizer.state_dict(),
+                        }, os.path.join(save_path, 'best_epoch_' + str(epoch) + '_iter_' + str(int(self.max_steps*epoch/self.max_epoch)) + '.ckpt')
+                    )
 
-        print("val_best_mIoU:", self.best_metric_value,
-              "val_mIoU", miou,
-              "val_mAcc", macc,
-              )
+            print("val_best_mIoU:", self.best_metric_value,
+                "val_mIoU", miou,
+                "val_mAcc", macc,
+                )
 
     def zero_grad(self):
         self.optimizer.zero_grad()
