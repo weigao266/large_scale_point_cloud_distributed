@@ -268,8 +268,8 @@ class PointTNN(nn.Module):
     def forward(self, x):
         ## voxelization
         # print(x.size())
-        print(x.C[:, 1:].size())
-        print(type(x.C[:, 1:]))
+        # print(x.C[:, 1:].size())
+        # print(type(x.C[:, 1:]))
         out, norm_points_p1, points_p1, count_p1, pos_embs = self.voxelize_with_centroids(x)
 
 

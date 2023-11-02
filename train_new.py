@@ -124,11 +124,12 @@ def train_one_epoch(hparams, trainer, train_dataloader, epoch, max_epoch, save_p
         t0 = time.time()
         loss = trainer.train_one_step(batch)
 
-        print("Iterations / Epochs / Total Epochs:", str(i), "/", str(epoch), "/", str(max_epoch),
-              "Train Loss:", loss.item(), 
-              "Batch Size:", batch["batch_size"], 
-              "Batch Time:", str(time.time()-t0), 'seconds',
-              )
+        if epoch < 3:
+            print("Iterations / Epochs / Total Epochs:", str(i), "/", str(epoch), "/", str(max_epoch),
+                "Train Loss:", loss.item(), 
+                "Batch Size:", batch["batch_size"], 
+                "Batch Time:", str(time.time()-t0), 'seconds',
+                )
 
         mloss += loss.item()
         del loss
