@@ -5,6 +5,7 @@ import torchmetrics
 import MinkowskiEngine as ME
 from src.utils.metric import per_class_iou
 import os
+from sklearn.metrics import confusion_matrix
 
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
@@ -42,11 +43,17 @@ class SegmentationTrainer(object):
         if torch.cuda.is_available():
             self.criterion = self.criterion.to(self.device)
         self.best_metric_value = -np.inf if best_metric_type == "maximize" else np.inf
-        self.metric = torchmetrics.ConfusionMatrix(
-            num_classes=num_classes,
-            compute_on_step=False,
-            dist_sync_on_step=dist_sync_metric
-        )
+        # self.metric = torchmetrics.ConfusionMatrix(
+        #     num_classes=num_classes,
+        #     compute_on_step=False,
+        #     dist_sync_on_step=dist_sync_metric
+        # )
+
+        self.metric_gt = []
+        self.metric_pred = []
+
+        # print('==============')
+        # print(gin.query_parameter("DimensionlessCoordinates.voxel_size"))
 
     def configure_optimizer_lrscheduler(self):
         self.optimizer = torch.optim.SGD(
@@ -84,6 +91,7 @@ class SegmentationTrainer(object):
             features=features,
             coordinates=coordinates,
         )
+        # print(input_data.coordinate_field_map_key)
 
         logits = self.model(input_data)
         loss = self.criterion(logits, labels)
@@ -116,37 +124,52 @@ class SegmentationTrainer(object):
             loss = self.criterion(logits, labels)
             pred = logits.argmax(dim=1, keepdim=False)
             mask = labels != self.ignore_label
-            self.metric(pred[mask].detach().cpu(), labels[mask].detach().cpu())
+            # self.metric(pred[mask].detach().cpu(), labels[mask].detach().cpu())
+            self.metric_gt.append(labels[mask].detach().cpu())
+            self.metric_pred.append(pred[mask].detach().cpu())
+            # print(labels[mask].size())
+            # print(pred[mask].size())
+            # print('========================')
             torch.cuda.empty_cache()
 
         return loss
 
     def on_validation_epoch_end(self, epoch, master_process, save_path=None):
-        confusion_matrix = self.metric.compute().cpu().numpy()
-        self.metric.reset()
-        ious = per_class_iou(confusion_matrix) * 100
-        accs = confusion_matrix.diagonal() / confusion_matrix.sum(1) * 100
+        # if master_process:
+        # confusion_matrix = self.metric.compute().cpu().numpy()
+        # print('++++++++++++++')
+        # confusion_matrix = self.metric.compute().numpy(force=True)
+        # confusion_matrix = self.metric.compute()
+        # print('--------')
+        cm = confusion_matrix(
+            torch.cat(self.metric_gt, dim=0).numpy(), 
+            torch.cat(self.metric_pred, dim=0).numpy()
+            )
+        # self.metric.reset()
+        self.metric_gt = []
+        self.metric_pred = []
+        ious = per_class_iou(cm) * 100
+        accs = cm.diagonal() / cm.sum(1) * 100
         miou = np.nanmean(ious)
         macc = np.nanmean(accs)
 
         def compare(prev, cur):
             return prev < cur if self.best_metric_type == "maximize" else prev > cur
-        
-        if master_process:
-            if compare(self.best_metric_value, miou):
-                self.best_metric_value = miou
-                if save_path is not None:
-                    torch.save({
-                        'epoch': epoch,
-                        'model_state_dict': self.model.state_dict(),
-                        'optimizer_state_dict': self.optimizer.state_dict(),
-                        }, os.path.join(save_path, 'best_epoch_' + str(epoch) + '_iter_' + str(int(self.max_steps*epoch/self.max_epoch)) + '.ckpt')
-                    )
-
-            print("val_best_mIoU:", self.best_metric_value,
-                "val_mIoU", miou,
-                "val_mAcc", macc,
+    
+        if compare(self.best_metric_value, miou):
+            self.best_metric_value = miou
+            if save_path is not None:
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': self.model.state_dict(),
+                    'optimizer_state_dict': self.optimizer.state_dict(),
+                    }, os.path.join(save_path, 'best_epoch_' + str(epoch) + '_iter_' + str(int(self.max_steps*epoch/self.max_epoch)) + '.ckpt')
                 )
+
+        print("val_best_mIoU:", self.best_metric_value,
+            "val_mIoU", miou,
+            "val_mAcc", macc,
+            )
 
     def zero_grad(self):
         self.optimizer.zero_grad()

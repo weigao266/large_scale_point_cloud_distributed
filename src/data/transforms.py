@@ -366,6 +366,7 @@ class DimensionlessCoordinates(object):
 
     def __call__(self, coords, feats, labels):
         return coords / self.voxel_size, feats, labels
+        # return coords / 0.1, feats, labels
 
 
 @gin.configurable

@@ -222,7 +222,9 @@ class FastPointTransformer(nn.Module):
         cm = x.coordinate_manager
         points = x.C[:, 1:]
 
+        # print(x.size())
         out = x.sparse()
+        # print(out.size())
         size = torch.Size([len(out), len(x)])
         tensor_map, field_map = cm.field_to_sparse_map(x.coordinate_key, out.coordinate_key)
         points_p1, count_p1 = downsample_points(points, tensor_map, field_map, size)

@@ -7,22 +7,6 @@ out_channels = 20
 # ==============================================================================
 # None.
 
-# Parameters for LitSegmentationModuleBase:
-# ==============================================================================
-LitSegmentationModuleBase.best_metric_type = 'maximize'
-LitSegmentationModuleBase.dist_sync_metric = False
-LitSegmentationModuleBase.ignore_label = 255
-LitSegmentationModuleBase.lr = 0.8
-LitSegmentationModuleBase.lr_eta_min = 0.0
-LitSegmentationModuleBase.momentum = 0.9
-LitSegmentationModuleBase.num_classes = %out_channels
-LitSegmentationModuleBase.warmup_steps_ratio = 0.1
-LitSegmentationModuleBase.weight_decay = 0.0001
-
-# Parameters for LitSegMinkowskiModule:
-# ==============================================================================
-# None.
-
 # Parameters for logged_hparams:
 # ==============================================================================
 logged_hparams.keys = \
@@ -43,10 +27,10 @@ logged_hparams.keys = \
      'ChromaticJitter.application_ratio',
      'ElasticDistortion.distortion_params',
      'ElasticDistortion.application_ratio',
-     'LitSegmentationModuleBase.lr',
-     'LitSegmentationModuleBase.momentum',
-     'LitSegmentationModuleBase.weight_decay',
-     'LitSegmentationModuleBase.warmup_steps_ratio',
+     'SegmentationTrainer.lr',
+     'SegmentationTrainer.momentum',
+     'SegmentationTrainer.weight_decay',
+     'SegmentationTrainer.warmup_steps_ratio',
      'train.max_step']
 
 # Parameters for Res16UNet34C:
@@ -90,11 +74,11 @@ ScanNetRGBDataModule.val_num_workers = 64
 train.best_metric = 'val_mIoU'
 train.check_val_every_n_epoch = 1
 train.data_module_name = 'ScanNetRGBDataModule'
-train.gpus = 8
+train.gpus = 1
 train.lightning_module_name = 'LitSegMinkowskiModule'
 train.log_every_n_steps = 10
-train.max_epoch = None
-train.max_step = 400000
+train.max_epoch = 0
+train.max_step = 100000
 train.model_name = 'Res16UNet34C'
 train.project_name = 'FastPointTransformer-release'
 train.refresh_rate_per_second = 1

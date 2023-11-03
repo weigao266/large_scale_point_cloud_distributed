@@ -59,6 +59,20 @@ VALID_CLASS_NAMES = ('wall', 'floor', 'cabinet', 'bed', 'chair', 'sofa', 'table'
                      'curtain', 'refrigerator', 'shower curtain', 'toilet', 'sink',
                      'bathtub', 'otherfurniture')
 
+# import src.data.transforms as T
+# tfs = [
+#     "DimensionlessCoordinates",
+#     "RandomRotation",
+#     "RandomCrop",
+#     "RandomAffine", # affine to rotate the rectangular crop
+#     "CoordinateDropout",
+#     "ChromaticTranslation",
+#     "ChromaticJitter",
+#     "RandomHorizontalFlip",
+#     "RandomTranslation",
+#     "ElasticDistortion",
+#     "NormalizeColor",
+# ]
 
 def read_ply(filename):
     with open(osp.join(filename), 'rb') as f:
@@ -144,8 +158,11 @@ class ScanNetRGBDataset(ScanNetDatasetBase):
     def __getitem__(self, idx):
         data = self._load_data(idx)
         coords, feats, labels = self.get_cfl_from_data(data)
+
+        # if self.transform is not None:
+        #     coords, feats, labels = self.transform(coords, feats, labels)
         if self.transform is not None:
-            coords, feats, labels = self.transform(coords, feats, labels)
+            coords, feats, labels = self.transform[idx%3](coords, feats, labels)
         coords = torch.from_numpy(coords)
         feats = torch.from_numpy(feats)
         labels = torch.from_numpy(labels)
@@ -188,23 +205,36 @@ class ScanNetRGBDataModule(pl.LightningDataModule):
         self.train_num_workers = train_num_workers
         self.val_num_workers = val_num_workers
         self.collate_fn = CollationFunctionFactory(collation_type)
-        self.train_transforms_ = train_transforms
         self.eval_transforms_ = eval_transforms
+
+        # self.train_transforms_ = train_transforms
+        resolutions = [0.02, 0.05, 0.10]
+        self.train_transforms_ = []
+        for i in range(len(resolutions)):
+            tmp = []
+            for name in train_transforms:
+                tmp.append(getattr(T, name)())
+            tmp = T.Compose(tmp)
+            tmp.transforms[0].voxel_size = resolutions[i]
+            self.train_transforms_.append(tmp)
+
 
     def setup(self, stage: Optional[str] = None):
         if stage == "fit" or stage is None:
-            train_transforms = []
-            if self.train_transforms_ is not None:
-                for name in self.train_transforms_:
-                    train_transforms.append(getattr(T, name)())
-            train_transforms = T.Compose(train_transforms)
+            # train_transforms = []
+            # if self.train_transforms_ is not None:
+            #     for name in self.train_transforms_:
+            #         train_transforms.append(getattr(T, name)())
+            # train_transforms = T.Compose(train_transforms)
+            train_transforms = self.train_transforms_ 
             self.dset_train = ScanNetRGBDataset("train", self.data_root, train_transforms)
         eval_transforms = []
         if self.eval_transforms_ is not None:
             for name in self.eval_transforms_:
                 eval_transforms.append(getattr(T, name)())
         eval_transforms = T.Compose(eval_transforms)
-        self.dset_val = ScanNetRGBDataset("val", self.data_root, eval_transforms)
+        # self.dset_val = ScanNetRGBDataset("val", self.data_root, eval_transforms)
+        self.dset_val = ScanNetRGBDataset("val", self.data_root, [eval_transforms, eval_transforms, eval_transforms])
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(

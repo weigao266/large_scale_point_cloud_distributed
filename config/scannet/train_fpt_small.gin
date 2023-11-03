@@ -8,3 +8,5 @@ FastPointTransformer.out_channels = %out_channels
 
 ScanNetRGBDataModule.train_batch_size = 1
 ScanNetRGBDataModule.val_batch_size = 1
+
+FastPointTransformer.activation_checkpointing = False

@@ -24,6 +24,7 @@ from torch.distributed.fsdp import FullStateDictConfig
 def _strip_prefix_from_state_dict(k, prefix):
     return k[len(prefix) :] if k.startswith(prefix) else k
 
+
 @gin.configurable
 def train(
     save_path,
@@ -109,6 +110,7 @@ def train(
             f.write(gin.operative_config_str())
 
     data_module.setup()
+    # gin.bind_parameter("DimensionlessCoordinates.voxel_size", 0.1)
     train_dataloader = data_module.train_dataloader()
     val_dataloader = data_module.val_dataloader()
 
@@ -123,11 +125,20 @@ def train(
         trainer.optimizer.load_state_dict(ckpt['optimizer_state_dict'])
         init_epoch = ckpt['epoch']
 
+    if augs:
+        resolutions = [0.02, 0.05, 0.10]
+        max_step = len(resolutions) * max_step
+    else:
+        resolutions = None
+
     max_epoch = max_epoch if max_epoch != 0 else int(max_step/(len(train_dataloader)/train_batch_size))
     trainer.max_epoch = max_epoch
     for epoch in range(init_epoch, max_epoch):
-        # train for one epoch
-        train_one_epoch(hparams, trainer, train_dataloader, epoch + init_epoch, max_epoch, save_path, device, master_process)
+        # # train for one epoch
+        # if augs and resolutions is not None:
+        #     train_dataloader.dataset.transform.transforms[0].voxel_size = resolutions[epoch % 3]
+        #     print(train_dataloader.dataset.transform.transforms[0].voxel_size)
+        train_one_epoch(hparams, trainer, train_dataloader, epoch + init_epoch, max_epoch, save_path, device, master_process, augs, resolutions)
 
         if check_val_every_n_epoch != 0 and (epoch % check_val_every_n_epoch == 0):
             val_one_epoch(hparams, trainer, val_dataloader, epoch + init_epoch, save_path, device, master_process)
@@ -139,29 +150,31 @@ def train(
 def val_one_epoch(hparams, trainer, dataloader, epoch, save_path, device, master_process):
     mloss = 0
     for i, batch in enumerate(dataloader):
-
+        # if i > 30:
+        #     break
         # move data to the same device as model
         loss = trainer.val_one_step(batch)
 
-        # print("Iterations:", str(i),
-        #       "Train Loss", loss.item(),
-        #       )
+        if master_process:
+            print("Iterations:", str(i),
+                "Train Loss", loss.item(),
+                )
 
         mloss += loss.item()
         del loss
 
     if master_process:
         print("Epoch val loss:", str(mloss/(i+1)))
-    
-    trainer.on_validation_epoch_end(epoch, master_process, save_path)
+        trainer.on_validation_epoch_end(epoch, master_process, save_path)
 
-def train_one_epoch(hparams, trainer, train_dataloader, epoch, max_epoch, save_path, device, master_process):
+def train_one_epoch(hparams, trainer, train_dataloader, epoch, max_epoch, save_path, device, master_process, augs=False, resolutions=None):
     mloss = 0
     et = time.time()
-    
-    for i, batch in enumerate(train_dataloader):
 
-        # move data to the same device as model
+    # # move data to the same device as model
+    
+    # print()
+    for i, batch in enumerate(train_dataloader):
         t0 = time.time()
         loss = trainer.train_one_step(batch)
 

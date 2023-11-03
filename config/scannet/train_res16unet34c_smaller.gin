@@ -9,3 +9,5 @@ Res16UNet34C.out_channels = %out_channels
 
 ScanNetRGBDataModule.train_batch_size = 8
 ScanNetRGBDataModule.val_batch_size = 2
+
+FastPointTransformer.activation_checkpointing = False
