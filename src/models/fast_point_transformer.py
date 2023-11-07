@@ -8,8 +8,6 @@ from src.models.transformer_base import LocalSelfAttentionBase, ResidualBlockWit
 from src.models.common import stride_centroids, downsample_points, downsample_embeddings
 import src.cuda_ops.functions.sparse_ops as ops
 
-# from lightning.pytorch import LightningModule
-
 
 class MaxPoolWithPoints(nn.Module):
 # class MaxPoolWithPoints(LightningModule):
@@ -265,11 +263,10 @@ class FastPointTransformer(nn.Module):
                 out = module(out, norm_points_p2)
             else:
                 def create_custom_forward(module_in):
-                    def custom_forward(*inputs):
-                        # None for past_key_value
-                        return module_in(*inputs)
+                    def custom_forward(inputs1, inputs2):
+                        return module_in(inputs1, inputs2)
                     return custom_forward
-                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p2)
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p2, use_reentrant=False)
         out_p2 = self.relu(self.bn2(self.attn2p2(out, norm_points_p2)))
         out, points_p4, count_p4 = self.pool(out_p2, points_p2, count_p2)
         norm_points_p4 = self.normalize_centroids(points_p4, out.C, out.tensor_stride[0])
@@ -279,11 +276,10 @@ class FastPointTransformer(nn.Module):
                 out = module(out, norm_points_p4)
             else:
                 def create_custom_forward(module_in):
-                    def custom_forward(*inputs):
-                        # None for past_key_value
-                        return module_in(*inputs)
+                    def custom_forward(inputs1, inputs2):
+                        return module_in(inputs1, inputs2)
                     return custom_forward
-                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p4)
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p4, use_reentrant=False)
         out_p4 = self.relu(self.bn3(self.attn3p4(out, norm_points_p4)))
         out, points_p8, count_p8 = self.pool(out_p4, points_p4, count_p4)
         norm_points_p8 = self.normalize_centroids(points_p8, out.C, out.tensor_stride[0])
@@ -293,11 +289,10 @@ class FastPointTransformer(nn.Module):
                 out = module(out, norm_points_p8)
             else:
                 def create_custom_forward(module_in):
-                    def custom_forward(*inputs):
-                        # None for past_key_value
-                        return module_in(*inputs)
+                    def custom_forward(inputs1, inputs2):
+                        return module_in(inputs1, inputs2)
                     return custom_forward
-                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p8)
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p8, use_reentrant=False)
         out_p8 = self.relu(self.bn4(self.attn4p8(out, norm_points_p8)))
         out, points_p16 = self.pool(out_p8, points_p8, count_p8)[:2]
         norm_points_p16 = self.normalize_centroids(points_p16, out.C, out.tensor_stride[0])
@@ -308,11 +303,10 @@ class FastPointTransformer(nn.Module):
                 out = module(out, norm_points_p16)
             else:
                 def create_custom_forward(module_in):
-                    def custom_forward(*inputs):
-                        # None for past_key_value
-                        return module_in(*inputs)
+                    def custom_forward(inputs1, inputs2):
+                        return module_in(inputs1, inputs2)
                     return custom_forward
-                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p16)
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p16, use_reentrant=False)
         out = self.pooltr(out)
 
         out = ME.cat(out, out_p8)
@@ -322,11 +316,10 @@ class FastPointTransformer(nn.Module):
                 out = module(out, norm_points_p8)
             else:
                 def create_custom_forward(module_in):
-                    def custom_forward(*inputs):
-                        # None for past_key_value
-                        return module_in(*inputs)
+                    def custom_forward(inputs1, inputs2):
+                        return module_in(inputs1, inputs2)
                     return custom_forward
-                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p8)
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p8, use_reentrant=False)
         out = self.pooltr(out)
 
         out = ME.cat(out, out_p4)
@@ -336,11 +329,10 @@ class FastPointTransformer(nn.Module):
                 out = module(out, norm_points_p4)
             else:
                 def create_custom_forward(module_in):
-                    def custom_forward(*inputs):
-                        # None for past_key_value
-                        return module_in(*inputs)
+                    def custom_forward(inputs1, inputs2):
+                        return module_in(inputs1, inputs2)
                     return custom_forward
-                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p4)
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p4, use_reentrant=False)
         out = self.pooltr(out)
 
         out = ME.cat(out, out_p2)
@@ -350,11 +342,10 @@ class FastPointTransformer(nn.Module):
                 out = module(out, norm_points_p2)
             else:
                 def create_custom_forward(module_in):
-                    def custom_forward(*inputs):
-                        # None for past_key_value
-                        return module_in(*inputs)
+                    def custom_forward(inputs1, inputs2):
+                        return module_in(inputs1, inputs2)
                     return custom_forward
-                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p2)
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p2, use_reentrant=False)
         out = self.pooltr(out)
 
         out = ME.cat(out, out_p1)
@@ -364,11 +355,10 @@ class FastPointTransformer(nn.Module):
                 out = module(out, norm_points_p1)
             else:
                 def create_custom_forward(module_in):
-                    def custom_forward(*inputs):
-                        # None for past_key_value
-                        return module_in(*inputs)
+                    def custom_forward(inputs1, inputs2):
+                        return module_in(inputs1, inputs2)
                     return custom_forward
-                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p1)
+                out = torch.utils.checkpoint.checkpoint(create_custom_forward(module), out, norm_points_p1, use_reentrant=False)
 
         out = self.devoxelize_with_centroids(out, x, pos_embs)
         return out
