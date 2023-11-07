@@ -228,7 +228,14 @@ class FastPointTransformer(nn.Module):
         points_p1, count_p1 = downsample_points(points, tensor_map, field_map, size)
         norm_points = self.normalize_points(points, points_p1, tensor_map)
 
-        pos_embs = self.enc_mlp(norm_points)
+        if not self.activation_checkpointing:
+            pos_embs = self.enc_mlp(norm_points)
+        else:
+            def create_custom_forward(module_in):
+                def custom_forward(inputs1):
+                    return module_in(inputs1)
+                return custom_forward
+            pos_embs = torch.utils.checkpoint.checkpoint(create_custom_forward(self.enc_mlp), norm_points, use_reentrant=False)
         down_pos_embs = downsample_embeddings(pos_embs, tensor_map, size, mode="avg")
         out = ME.SparseTensor(torch.cat([out.F, down_pos_embs], dim=1),
                             coordinate_map_key=out.coordinate_key,
@@ -238,7 +245,14 @@ class FastPointTransformer(nn.Module):
         return out, norm_points_p1, points_p1, count_p1, pos_embs
 
     def devoxelize_with_centroids(self, out: ME.SparseTensor, x: ME.TensorField, h_embs):
-        out = self.final(torch.cat([out.slice(x).F, h_embs], dim=1))
+        if not self.activation_checkpointing:
+            out = self.final(torch.cat([out.slice(x).F, h_embs], dim=1))
+        else:
+            def create_custom_forward(module_in):
+                def custom_forward(inputs1):
+                    return module_in(inputs1)
+                return custom_forward
+            out = torch.utils.checkpoint.checkpoint(create_custom_forward(self.final), torch.cat([out.slice(x).F, h_embs], dim=1), use_reentrant=False)
         return out
 
     def forward(self, x):
