@@ -1,4 +1,6 @@
-# Large scale TNN
+# Large Scale Point Cloud Distributed
+
+- Support DDP, Activation Checkpointing
 
 Baseline from Fast Point Cloud transformer, README TBD.
 
